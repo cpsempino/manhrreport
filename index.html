@@ -64,7 +64,24 @@ tfoot td{background:var(--task2);font-weight:600;padding:5px 6px}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{display:inline-flex;align-items:center;gap:4px;background:var(--task2);border-radius:14px;padding:3px 4px 3px 10px}
 .chip button{border:0;background:none;padding:0 6px;color:var(--mute);cursor:pointer}
-#grid select.tg{border:0;background:transparent;font:inherit;color:var(--ink);padding:4px;max-width:120px}
+#gridwrap{max-height:78vh;overflow:auto}
+#grid{border-collapse:separate;border-spacing:0;border-top:1px solid var(--line);border-left:1px solid var(--line)}
+#grid th,#grid td{border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+#grid .fc{position:sticky;z-index:2}
+#grid .fc1{left:0;min-width:130px;max-width:130px}
+#grid .fc2{left:130px;min-width:150px;max-width:150px}
+#grid .fc3{left:280px;min-width:90px;max-width:90px}
+#grid .fc4{left:370px;min-width:100px;max-width:100px}
+#grid .fc5{left:470px;min-width:125px;max-width:125px;box-shadow:2px 0 0 var(--line)}
+#grid td.fc{overflow:hidden;text-overflow:ellipsis}
+#grid td.type.fc{background:var(--panel)}
+#grid .fcw{position:sticky;left:0;z-index:2}
+#grid tfoot td.fcw{background:var(--task2)}
+#grid thead tr:first-child th{position:sticky;top:0;z-index:3}
+#grid thead tr:first-child th.fc{z-index:5}
+#grid thead tr.dtype th.fcw{position:sticky;left:0;top:auto;z-index:2}
+@media (max-width:900px){#grid .fc,#grid .fcw{left:auto!important}#grid tbody .fc,#grid tfoot .fcw,#grid thead tr.dtype th.fcw{position:static}}
+#grid select.tg{border:0;background:transparent;font:inherit;color:var(--ink);padding:4px;max-width:84px}
 .bar label.chk{flex-direction:row;align-items:center;gap:4px;font-size:13px;color:var(--ink)}
 textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12px/1.4 ui-monospace,Consolas,monospace;word-break:break-all;resize:vertical}
 .card p{margin:0 0 8px}
@@ -92,6 +109,19 @@ textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;b
 .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px}
 .mb{height:5px;margin-top:3px;border-radius:3px;background:var(--line);overflow:hidden}.mb i{display:block;height:100%}
 .mini tr.sub td{color:var(--mute);font-size:13px}
+table.rep td.ok{background:#12a150;color:#fff;font-weight:600}
+table.rep td.neg{color:#e5484d;font-weight:600}
+table.rep td.in{background:var(--task2)}
+table.rep input.nm{text-align:left;min-width:260px}
+table.rep select{border:0;background:transparent;font:inherit;color:inherit;max-width:130px}
+table.rep caption .hint{font-weight:400}
+button.lnk{border:0;background:none;padding:0;color:var(--ink);text-decoration:underline;cursor:pointer;font:inherit;text-align:left}
+table.tmsh{width:100%;color:var(--ink)}
+table.tmsh td{border:1px solid var(--line);padding:4px 8px;background:var(--panel);text-align:left}
+table.tmsh td.tl{width:18%;font-weight:600}
+table.tmsh td.in{background:var(--task2)}
+table.tmsh input{border:0;background:transparent;font:inherit;color:inherit;width:100%;padding:3px}
+table.tmsh input[type=date]{width:auto;min-width:140px}
 .hint{color:var(--mute)}
 .mini{width:100%;border-collapse:collapse}
 .mini th,.mini td{padding:5px 10px;text-align:left;border:1px solid var(--line)}
@@ -135,6 +165,7 @@ table.rep tfoot td{background:var(--task2);font-weight:600}
   <button id="t-tracker" class="on">Tracker</button>
   <button id="t-sheet">Timesheet</button>
   <button id="t-weekly">Weekly report</button>
+  <button id="t-tms">TMS</button>
   <button id="t-dash">Dashboard</button>
   <button id="t-lists">Lists</button>
   <button id="t-backup">Backup</button>
@@ -173,7 +204,7 @@ table.rep tfoot td{background:var(--task2);font-weight:600}
   <label class="chk" style="padding-bottom:6px"><input type="checkbox" id="bov">Overwrite existing</label>
   <button id="bapply" class="primary">Apply</button><button id="bclear">Clear</button>
 </div>
-<div class="wrap"><table id="grid"></table></div>
+<div class="wrap" id="gridwrap"><table id="grid"></table></div>
 
 <div class="add">
   <select id="np"></select>
@@ -188,6 +219,25 @@ table.rep tfoot td{background:var(--task2);font-weight:600}
 <section id="v-sheet" hidden>
   <div class="bar"><label>Name<input type="text" id="tsname" placeholder="Employee name" style="width:180px"></label><label>From<input type="date" id="tsfrom"></label><label>To<input type="date" id="tsto"></label><label>Regular hours per day<input type="number" id="reg" step="0.25" min="0" style="width:90px"></label><span class="sp"></span><input type="file" id="sfile" accept=".xlsx,.xls,.xlsm,.csv" hidden><button id="simp" class="primary">Import timesheet</button><button id="sx">Export timesheet</button><button id="sprint">Print</button></div>
   <div class="wrap"><table id="sheet"></table></div>
+</section>
+
+<section id="v-tms" hidden>
+  <div class="bar">
+    <label>Project<select id="tmsproj" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);min-width:220px"></select></label>
+    <label>Warn at (% of plan)<input type="number" id="tmswarn" min="0" max="100" step="5" style="width:100px"></label>
+    <label>Occupancy based on<select id="tmsocc" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="plan">Plan MH</option><option value="actual">Actual MH</option></select></label>
+    <span class="sp"></span>
+    <button id="tmsx">Export TMS</button><button id="tmsprint">Print</button>
+  </div>
+  <div class="wrap"><table id="tmsover" class="rep"></table></div>
+  <div class="wrap" style="padding:10px"><table id="tmshead" class="tmsh"></table></div>
+  <div class="wrap"><table id="tmstab" class="rep"></table></div>
+  <div class="add">
+    <input id="tmsnew" list="tmsdl" placeholder="Add a work scope row" style="min-width:260px"><datalist id="tmsdl"></datalist>
+    <button id="tmsadd" class="primary">Add row</button>
+    <button id="tmsreset">Reset rows to template</button>
+  </div>
+  <div class="hint" style="padding:0 20px 24px">Actual MH is the logged time from the Tracker for this project, added up by work scope (the Tracker task name). Tracker tasks that don't match any row are totalled under "Other work not listed above". Plan MH, efficiency and status are typed in. The Tracking column compares Actual with Plan: On track, Near plan (at or above the warning percentage) or Over plan.</div>
 </section>
 
 <section id="v-dash" hidden>
@@ -254,12 +304,12 @@ var freshItems=[];
 function render(){
   $("hideempty").checked=S.hideEmpty!==false;
   if(S.dates.length){var a=$("bf").value,b=$("bto").value,f0=S.dates[0],l0=S.dates[S.dates.length-1];
-    if(!a||a<f0||a>l0)$("bf").value=f0;if(!b||b<f0||b>l0)$("bto").value=l0}fillSelects();renderLists();renderSheet();if(!$("calpop").hidden)renderCal();renderWeekly();renderHalves();renderDash();
-  var g=$("grid"),h="<thead><tr><th>Project</th><th>Task</th><th>Description</th><th>Target</th><th></th>";
+    if(!a||a<f0||a>l0)$("bf").value=f0;if(!b||b<f0||b>l0)$("bto").value=l0}fillSelects();renderLists();renderSheet();if(!$("calpop").hidden)renderCal();renderWeekly();renderHalves();renderDash();renderTms();
+  var g=$("grid"),h="<thead><tr><th class=\"fc fc1\">Project</th><th class=\"fc fc2\">Task</th><th class=\"fc fc3\">Description</th><th class=\"fc fc4\">Target</th><th class=\"fc fc5\"></th>";
   S.dates.forEach(function(s){var d=parseIso(s),w=d.getDay()%6===0;
     h+='<th class="'+(dayCls(s)||(w?"wk":""))+'"'+(dayCls(s)?' title="'+esc((S.ts[s]||{}).h||"")+'"':"")+'>'+(d.getMonth()+1)+"/"+d.getDate()+"<small>"+"SMTWTFS"[d.getDay()]+"</small></th>"});
   h+="<th>Total</th><th></th></tr>";
-  h+='<tr class="dtype"><th colspan="5" style="text-align:left">Day type</th>';
+  h+='<tr class="dtype"><th class="fcw" colspan="5" style="text-align:left">Day type</th>';
   S.dates.forEach(function(s){
     var cur=(S.ts[s]||{}).h||"";
     var opts='<option value="">—</option>'+S.lists.holidays.map(function(x){return"<option"+(x===cur?" selected":"")+">"+esc(x)+"</option>"}).join("");
@@ -274,8 +324,8 @@ function render(){
     ["est","log"].forEach(function(k,r){
       var tot=0;
       h+="<tr>";
-      if(!r)h+='<td class="lab" rowspan="2">'+esc(it.project||"")+'</td><td class="lab" rowspan="2">'+esc(it.task)+'</td><td class="lab2" rowspan="2">'+esc(it.desc)+'</td><td class="lab2" rowspan="2"><select class="tg" data-tg="'+i+'" aria-label="Target">'+topts(it.target)+"</select></td>";
-      h+='<td class="type">'+(k==="est"?"Estimated Time":"Logged Time")+"</td>";
+      if(!r)h+='<td class="lab fc fc1" rowspan="2" title="'+esc(it.project||"")+'">'+esc(it.project||"")+'</td><td class="lab fc fc2" rowspan="2" title="'+esc(it.task)+'">'+esc(it.task)+'</td><td class="lab2 fc fc3" rowspan="2" title="'+esc(it.desc)+'">'+esc(it.desc)+'</td><td class="lab2 fc fc4" rowspan="2"><select class="tg" data-tg="'+i+'" aria-label="Target">'+topts(it.target)+"</select></td>";
+      h+='<td class="type fc fc5">'+(k==="est"?"Estimated Time":"Logged Time")+"</td>";
       S.dates.forEach(function(s){
         var v=it[k][s],w=parseIso(s).getDay()%6===0;tot+=num(v);
         h+='<td class="c '+dayCls(s)+" "+(w?"wk ":"")+(v?"has ":"")+(k==="est"?"e":"l")+'"><input type="number" step="0.5" min="0" data-i="'+i+'" data-k="'+k+'" data-d="'+s+'" value="'+(v||"")+'" aria-label="'+k+" "+s+'"></td>'});
@@ -286,10 +336,10 @@ function render(){
   if(!shown)h+='<tr><td colspan="'+(S.dates.length+7)+'" class="empty">No tasks have hours in this range. Untick "Hide tasks with no hours" to see all tasks.</td></tr>';
   h+="</tbody><tfoot>";
   ["est","log"].forEach(function(k){
-    var all=0;h+='<tr><td colspan="5" style="text-align:left">'+(k==="est"?"Total estimated":"Total logged")+"</td>";
+    var all=0;h+='<tr><td class="fcw" colspan="5" style="text-align:left">'+(k==="est"?"Total estimated":"Total logged")+"</td>";
     S.dates.forEach(function(s){var t=0;S.items.forEach(function(it){t+=num(it[k][s])});all+=t;h+="<td>"+fmt(t)+"</td>"});
     h+="<td>"+fmt(all)+"</td><td></td></tr>"});
-  var nt=0,xt=0,nr='<tr><td colspan="5" style="text-align:left">Nominal (regular) hrs</td>',xr='<tr><td colspan="5" style="text-align:left">Excess over regular (OT)</td>';
+  var nt=0,xt=0,nr='<tr><td class="fcw" colspan="5" style="text-align:left">Nominal (regular) hrs</td>',xr='<tr><td class="fcw" colspan="5" style="text-align:left">Excess over regular (OT)</td>';
   S.dates.forEach(function(s){var man=S.nom&&S.nom[s]!==undefined,nv=nomOf(s),xv=excessOf(s);nt+=nv;xt+=xv;
     nr+='<td class="c"><input type="number" step="0.5" min="0" data-nom="'+s+'" value="'+(man?S.nom[s]:"")+'" placeholder="'+(nomDef(s)||"0")+'" title="Regular hours for this day. Leave blank for the default." aria-label="Nominal hours '+s+'"></td>';
     xr+="<td>"+fmt(xv)+"</td>"});
@@ -433,8 +483,8 @@ $("lt").addEventListener("paste",function(e){
   rows.forEach(function(row,i){row.forEach(function(v,j){var c=c0+j;if(c>=LKEYS.length)return;cols[c][r0+i]=v.trim()})});
   commitCols(cols);
   say("Pasted "+rows.length+" row"+(rows.length===1?"":"s")+".")});
-function tab(n){["tracker","sheet","weekly","dash","lists","backup"].forEach(function(k){$("v-"+k).hidden=k!==n;$("t-"+k).classList.toggle("on",k===n)});say("")}
-["tracker","sheet","weekly","dash","lists","backup"].forEach(function(k){$("t-"+k).onclick=function(){tab(k)}});
+function tab(n){["tracker","sheet","weekly","tms","dash","lists","backup"].forEach(function(k){$("v-"+k).hidden=k!==n;$("t-"+k).classList.toggle("on",k===n)});say("")}
+["tracker","sheet","weekly","tms","dash","lists","backup"].forEach(function(k){$("t-"+k).onclick=function(){tab(k)}});
 $("golists").onclick=function(){tab("lists")};
 $("sprint").onclick=function(){window.print()};
 function calc(s){
@@ -847,6 +897,128 @@ $("caldtgo").onclick=function(){
   ds.forEach(function(d){var o=S.ts[d]=S.ts[d]||{};o.h=v});
   save();render();say((v?"Day type "+v:"Day type cleared")+" on "+ds.length+" day"+(ds.length===1?"":"s")+".")};
 $("hideempty").onchange=function(){S.hideEmpty=this.checked;save();render()};
+var TMS_ROWS=["Project Monitoring & Documentation","P&ID/ Flow Sheet","PMS/ Database Inputt","Pipe Modeling","Pipe Support Modeling","Equipment Modeling","Structure Modeling","Floor Modeling","Piping Layout Drawing","Equipment Layout Drawings","Spool Drawings","Pipe Support Detail Drawings","BQ/BOM","Scan Data Processing"];
+var TMS_ST=["On-going","Not started","On hold","Completed"];
+function r2(v){return Math.round(v*100)/100}
+function f0(v){return String(r2(v))}
+function pc(v,d){return isFinite(v)?v.toFixed(d)+"%":"–"}
+function tmsNorm(t){return String(t||"").toLowerCase().replace(/&/g,"and").replace(/[^a-z0-9]+/g,"")}
+function tmsMatch(rows,task){
+  var t=tmsNorm(task),i,r;if(!t)return -1;
+  for(i=0;i<rows.length;i++)if(tmsNorm(rows[i].n)===t)return i;
+  if(t.length<6)return -1;
+  for(i=0;i<rows.length;i++){r=tmsNorm(rows[i].n);if(r.length>=6&&(r.indexOf(t)>=0||t.indexOf(r)>=0))return i}
+  return -1}
+function tmsRows(){return TMS_ROWS.map(function(n){return{n:n,plan:0,eff:100,st:"On-going"}})}
+function tmsCfg(p){return(S.tms&&S.tms[p])||{rows:tmsRows()}}
+function tmsEdit(p){S.tms=S.tms||{};if(!S.tms[p])S.tms[p]={rows:tmsRows()};if(!S.tms[p].rows)S.tms[p].rows=tmsRows();return S.tms[p]}
+function tmsDefs(p){return{no:(/\d{7}/.exec(p)||[""])[0],name:p.replace(/\d{7}/,"").replace(/^[\s\-–_:]+/,"").trim()||p}}
+function tmsProjects(){var l=((S.lists&&S.lists.projects)||[]).slice();S.items.forEach(function(it){if(it.project&&l.indexOf(it.project)<0)l.push(it.project)});return l}
+function tmsCur(){var l=tmsProjects();return(S.tmsProj&&l.indexOf(S.tmsProj)>=0)?S.tmsProj:(l[0]||"")}
+function tmsWarn(){return S.tmsWarn===undefined?90:S.tmsWarn}
+function tmsFlag(plan,act,warn){
+  plan=r2(plan);act=r2(act);
+  if(!plan&&!act)return["","–"];
+  if(!plan)return["crit","No plan set"];
+  if(act>plan)return["crit","Over plan"];
+  if(act/plan*100>=warn)return["warn","Near plan"];
+  return["ok","On track"]}
+function tmsCalc(p){
+  var c=tmsCfg(p),rows=c.rows,act=rows.map(function(){return 0}),other=0,names={},first=null,last=null,from=c.from||"",to=c.to||"";
+  S.items.forEach(function(it){
+    if((it.project||"")!==p)return;
+    var h=0;
+    Object.keys(it.log).forEach(function(d){
+      var v=num(it.log[d]);if(!v)return;
+      if(from&&d<from)return;if(to&&d>to)return;
+      h+=v;if(first===null||d<first)first=d;if(last===null||d>last)last=d});
+    if(!h)return;
+    var i=tmsMatch(rows,it.task);
+    if(i>=0)act[i]+=h;else{other+=h;names[it.task||"(no task)"]=1}});
+  var df=from||first,dt=to||last,nom=0;
+  if(df&&dt&&df<=dt){var l=rangeDays(df,dt);if(l.length>800)l=l.slice(0,800);l.forEach(function(d){nom+=nomOf(d)})}
+  return{c:c,act:act,other:other,otherNames:Object.keys(names),df:df,dt:dt,nom:nom}}
+function tmsPlan(k){var t=0;k.c.rows.forEach(function(r){t+=num(r.plan)});return t}
+function tmsAct(k){var t=k.other;k.act.forEach(function(a){t+=a});return t}
+function renderTms(){
+  var ae=document.activeElement,key=null;
+  if(ae&&ae.dataset&&ae.dataset.tf!==undefined&&$("v-tms").contains(ae))key='[data-tf="'+ae.dataset.tf+'"][data-ti="'+(ae.dataset.ti===undefined?"":ae.dataset.ti)+'"]';
+  var warn=tmsWarn(),basis=S.tmsOcc||"plan",list=tmsProjects(),cur=tmsCur(),sel=$("tmsproj");
+  if(document.activeElement!==sel)sel.innerHTML=list.length?list.map(function(p){return"<option"+(p===cur?" selected":"")+">"+esc(p)+"</option>"}).join(""):'<option value="">(no projects)</option>';
+  setv("tmswarn",warn);setv("tmsocc",basis);
+  $("tmsdl").innerHTML=((S.lists&&S.lists.tasks)||[]).map(function(t){return"<option>"+esc(t)+"</option>"}).join("");
+  var h='<caption>All projects</caption><thead><tr><th>Project</th><th>Plan MH</th><th>Actual MH</th><th>Remaining MH</th><th>Used</th><th>Tracking</th></tr></thead><tbody>',tp=0,ta=0;
+  if(!list.length)h+='<tr><td colspan="6" class="hint" style="padding:18px">No projects yet. Add one in the Lists tab or the Tracker.</td></tr>';
+  list.forEach(function(p){
+    var k=tmsCalc(p),plan=tmsPlan(k),act=tmsAct(k),f=tmsFlag(plan,act,warn);tp+=plan;ta+=act;
+    h+='<tr'+(p===cur?' style="outline:2px solid var(--head);outline-offset:-2px"':"")+'><td class="l"><button class="lnk" data-pick="'+esc(p)+'">'+esc(p)+'</button></td><td>'+f0(plan)+"</td><td>"+f0(act)+'</td><td class="'+(plan-act<0?"neg":"")+'">'+f0(plan-act)+"</td><td>"+(plan?pc(act/plan*100,0):"–")+'</td><td class="'+f[0]+'">'+f[1]+"</td></tr>"});
+  var tf0=tmsFlag(tp,ta,warn);
+  h+="</tbody>"+(list.length>1?'<tfoot><tr><td style="text-align:left">All projects</td><td>'+f0(tp)+"</td><td>"+f0(ta)+'</td><td class="'+(tp-ta<0?"neg":"")+'">'+f0(tp-ta)+"</td><td>"+(tp?pc(ta/tp*100,0):"–")+'</td><td class="'+tf0[0]+'">'+tf0[1]+"</td></tr></tfoot>":"");
+  $("tmsover").innerHTML=h;
+  if(!cur){$("tmshead").innerHTML="";$("tmstab").innerHTML="";return}
+  var k=tmsCalc(cur),c=k.c,d=tmsDefs(cur);
+  var inp=function(f,v){return'<input type="text" data-tf="'+f+'" data-ti="" value="'+esc(v)+'">'};
+  $("tmshead").innerHTML='<tr><td class="tl">Project No.</td><td class="in">'+inp("no",c.no===undefined?d.no:c.no)+'</td><td class="tl">Role in the project</td><td class="in">'+inp("role",c.role||"")+'</td></tr><tr><td class="tl">Project Name:</td><td class="in">'+inp("name",c.name===undefined?d.name:c.name)+'</td><td class="tl">Duration:</td><td class="in"><input type="date" data-tf="from" data-ti="" value="'+(k.df||"")+'"> – <input type="date" data-tf="to" data-ti="" value="'+(k.dt||"")+'"> <span class="hint">'+(c.from||c.to?"set by you":"auto, from logged dates")+"</span></td></tr>";
+  var occ=function(pl,ac){var v=basis==="actual"?ac:pl;return k.nom>0?pc(v/k.nom*100,1):"–"};
+  var stOpts=function(v){var l=TMS_ST.slice();if(v&&l.indexOf(v)<0)l.push(v);return l.map(function(x){return"<option"+(x===v?" selected":"")+">"+esc(x)+"</option>"}).join("")};
+  var T='<caption>Nominal hours in the duration: <b>'+f0(k.nom)+' hrs</b> <span class="hint">· Occupancy = '+(basis==="actual"?"Actual":"Plan")+" MH ÷ nominal hours</span></caption>"
+    +'<thead><tr><th>#</th><th>Work Scope</th><th>Plan MH</th><th>Actual MH</th><th>Remaining MH</th><th>Used</th><th>Occupancy<br>(Nominal)</th><th>Efficiency<br>&amp; Quality (%)</th><th>Status</th><th>Tracking</th><th></th></tr></thead><tbody>',plan=0,act=0;
+  c.rows.forEach(function(r,i){
+    var a=k.act[i],pl=num(r.plan),f=tmsFlag(pl,a,warn);plan+=pl;act+=a;
+    T+='<tr><td>'+(i+1)+'</td><td class="l in"><input type="text" class="nm" data-tf="n" data-ti="'+i+'" value="'+esc(r.n)+'" aria-label="Work scope"></td>'
+     +'<td class="in"><input type="number" step="0.5" min="0" data-tf="plan" data-ti="'+i+'" value="'+(pl||"")+'" placeholder="0" aria-label="Plan MH"></td>'
+     +"<td>"+f0(a)+'</td><td class="'+(pl-a<0?"neg":"")+'">'+f0(pl-a)+"</td><td>"+(pl?pc(a/pl*100,0):"–")+"</td><td>"+occ(pl,a)+"</td>"
+     +'<td class="in"><input type="number" step="1" min="0" data-tf="eff" data-ti="'+i+'" value="'+(r.eff===undefined?100:r.eff)+'" aria-label="Efficiency and quality"></td>'
+     +'<td class="in"><select data-tf="st" data-ti="'+i+'" aria-label="Status">'+stOpts(r.st)+"</select></td>"
+     +'<td class="'+f[0]+'">'+f[1]+'</td><td><button class="del" data-tdel="'+i+'" title="Remove this work scope" aria-label="Remove row">✕</button></td></tr>'});
+  if(k.other>0){act+=k.other;
+    T+='<tr class="np"><td>–</td><td class="l">Other work not listed above <span class="hint">('+esc(k.otherNames.join(", "))+")</span></td><td>–</td><td>"+f0(k.other)+"</td><td></td><td></td><td>"+(basis==="actual"?occ(0,k.other):"–")+"</td><td></td><td></td><td></td><td></td></tr>"}
+  var tf=tmsFlag(plan,act,warn);
+  T+='</tbody><tfoot><tr><td></td><td style="text-align:right">Total</td><td>'+f0(plan)+"</td><td>"+f0(act)+'</td><td class="'+(plan-act<0?"neg":"")+'">'+f0(plan-act)+"</td><td>"+(plan?pc(act/plan*100,0):"–")+"</td><td>"+occ(plan,act)+'</td><td></td><td></td><td class="'+tf[0]+'">'+tf[1]+"</td><td></td></tr></tfoot>";
+  $("tmstab").innerHTML=T;
+  if(key){var el=$("v-tms").querySelector(key);if(el){el.focus();if(el.select&&el.type!=="date")try{el.select()}catch(e){}}}}
+$("tmsproj").onchange=function(){S.tmsProj=this.value;save();renderTms()};
+$("tmswarn").onchange=function(){S.tmsWarn=Math.min(100,Math.max(0,num(this.value)));save();renderTms()};
+$("tmsocc").onchange=function(){S.tmsOcc=this.value;save();renderTms()};
+$("v-tms").addEventListener("change",function(e){
+  var t=e.target,f=t.dataset&&t.dataset.tf;if(f===undefined)return;
+  var p=tmsCur();if(!p)return;
+  var c=tmsEdit(p),i=t.dataset.ti;
+  if(i!==undefined&&i!==""){
+    var r=c.rows[+i];if(!r)return;
+    if(f==="n")r.n=t.value.trim();else if(f==="plan")r.plan=num(t.value);else if(f==="eff")r.eff=t.value===""?"":num(t.value);else if(f==="st")r.st=t.value}
+  else c[f]=t.value;
+  save();setTimeout(renderTms,0)});
+$("v-tms").addEventListener("click",function(e){
+  var x=e.target.closest("[data-tdel]");
+  if(x){var p=tmsCur(),c=tmsEdit(p),r=c.rows[+x.dataset.tdel];
+    if(r&&confirm('Remove "'+r.n+'" from this project?')){c.rows.splice(+x.dataset.tdel,1);save();renderTms()}return}
+  var pk=e.target.closest("[data-pick]");
+  if(pk){S.tmsProj=pk.dataset.pick;save();renderTms()}});
+$("tmsadd").onclick=function(){
+  var p=tmsCur(),v=$("tmsnew").value.trim();
+  if(!p)return say("Add a project first (Lists tab).");
+  if(!v)return say("Type a work scope name first.");
+  tmsEdit(p).rows.push({n:v,plan:0,eff:100,st:"On-going"});$("tmsnew").value="";save();renderTms();say("")};
+$("tmsnew").addEventListener("keydown",function(e){if(e.key==="Enter")$("tmsadd").click()});
+$("tmsreset").onclick=function(){
+  var p=tmsCur();if(!p)return;
+  if(!confirm("Replace this project's work scope list with the default template? Its Plan MH values will be cleared."))return;
+  tmsEdit(p).rows=tmsRows();save();renderTms()};
+$("tmsprint").onclick=function(){window.print()};
+$("tmsx").onclick=function(){
+  var p=tmsCur();if(!p)return say("Add a project first (Lists tab).");
+  var k=tmsCalc(p),c=k.c,d=tmsDefs(p),warn=tmsWarn(),basis=S.tmsOcc||"plan",plan=0,act=0;
+  var occ=function(pl,ac){var v=basis==="actual"?ac:pl;return k.nom>0?r2(v/k.nom*100):null};
+  var out=[["Project No.",c.no===undefined?d.no:c.no,"Role in the project",c.role||""],["Project Name",c.name===undefined?d.name:c.name,"Duration",(k.df||"")+" – "+(k.dt||"")],["Nominal hours in duration",r2(k.nom)],[],
+    ["#","Work Scope","Plan MH","Actual MH","Remaining MH","Used %","Occupancy (Nominal) %","Efficiency & Quality %","Status","Tracking"]];
+  c.rows.forEach(function(r,i){var a=k.act[i],pl=num(r.plan),f=tmsFlag(pl,a,warn);plan+=pl;act+=a;
+    out.push([i+1,r.n,pl,r2(a),r2(pl-a),pl?r2(a/pl*100):null,occ(pl,a),r.eff===""||r.eff===undefined?100:r.eff,r.st||"",f[1]])});
+  if(k.other>0){act+=k.other;out.push(["","Other work not listed above ("+k.otherNames.join(", ")+")",null,r2(k.other),null,null,basis==="actual"?occ(0,k.other):null,null,"",""])}
+  out.push(["","Total",plan,r2(act),r2(plan-act),plan?r2(act/plan*100):null,occ(plan,act),null,"",tmsFlag(plan,act,warn)[1]]);
+  var ws=XLSX.utils.aoa_to_sheet(out);ws["!cols"]=[{wch:6},{wch:44},{wch:10},{wch:10},{wch:13},{wch:9},{wch:20},{wch:20},{wch:12},{wch:12}];
+  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"TMS");
+  saveXlsx(wb,"TMS-"+p.replace(/[\\\/:*?"<>|]+/g,"_")+".xlsx")};
 function syncBar(){if(S.dates.length){$("start").value=S.dates[0];$("days").value=S.dates.length}}
 load();ensureLists();
 buildPeriod();
