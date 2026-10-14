@@ -384,9 +384,52 @@ function toIso(c,yr){
     if(m)return yr+"-"+m[1].padStart(2,"0")+"-"+m[2].padStart(2,"0");
     var p=Date.parse(s);if(!isNaN(p)&&/\d{4}/.test(s))return iso(new Date(p))}
   return null}
+function isoCell(c,yr){
+  if(typeof c==="string"){var m=c.trim().match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);if(m)return m[1]+"-"+p2(+m[2])+"-"+p2(+m[3])}
+  return toIso(c,yr)}
+// Raw day-by-day log: Project | Scope of Work | Task | Planned Start/End | ... | Logged Date | Logged Time
+function importRaw(rows,hi){
+  var hr=rows[hi].map(function(c){return String(c==null?"":c).trim().toLowerCase()});
+  var ix=function(re){return hr.findIndex(function(h){return re.test(h)})};
+  var cP=ix(/^project/),cS=ix(/^scope/),cT=hr.findIndex(function(h){return h==="task"}),
+      cPS=ix(/^planned start/),cPE=ix(/^planned end/),cD=ix(/^logged date/),cH=ix(/^logged t/),cE=ix(/^est/),cG=ix(/^target/);
+  if(cD<0||cH<0)return false;
+  var yr=(S.dates[0]||iso(new Date())).slice(0,4),map={},order=[],pmin="",pmax="",lmin="",lmax="",nrows=0,skipped=0;
+  rows.slice(hi+1).forEach(function(r){
+    var d=isoCell(r[cD],yr),h=num(r[cH]),e=cE>=0?num(r[cE]):0;
+    var proj=cP>=0&&r[cP]!=null?String(r[cP]).trim():"",scope=cS>=0&&r[cS]!=null?String(r[cS]).trim():"",
+        task=cT>=0&&r[cT]!=null?String(r[cT]).trim():"",tg=cG>=0&&r[cG]!=null?String(r[cG]).trim():"";
+    if(!proj&&!scope&&!task&&!d)return;
+    if(!d||(!h&&!e)||!(scope||task)){skipped++;return}
+    var tk=scope||task,ds=scope?task:"";
+    var key=proj+"\u0001"+tg+"\u0001"+tk+"\u0001"+ds;
+    if(!map[key]){map[key]={project:proj,target:tg,task:tk,desc:ds,est:{},log:{}};order.push(map[key])}
+    if(h)map[key].log[d]=(map[key].log[d]||0)+h;
+    if(e)map[key].est[d]=(map[key].est[d]||0)+e;
+    nrows++;
+    if(!lmin||d<lmin)lmin=d;if(!lmax||d>lmax)lmax=d;
+    var a=cPS>=0?isoCell(r[cPS],yr):null,b=cPE>=0?isoCell(r[cPE],yr):null;
+    if(a&&(!pmin||a<pmin))pmin=a;if(b&&(!pmax||b>pmax))pmax=b});
+  if(!order.length){say("No usable rows found (need Logged Date and Logged Time).");return true}
+  var added=0,upd=0;
+  order.forEach(function(n){
+    var ex=S.items.filter(function(x){return(x.project||"")===n.project&&(x.target||"")===n.target&&x.task===n.task&&x.desc===n.desc})[0];
+    if(ex){Object.keys(n.est).forEach(function(d){ex.est[d]=n.est[d]});Object.keys(n.log).forEach(function(d){ex.log[d]=n.log[d]});upd++}
+    else{S.items.push(n);added++}});
+  var from=pmin||lmin,to=pmax||lmax;
+  if(lmin<from)from=lmin;if(lmax>to)to=lmax;
+  var n=Math.min(120,Math.round((parseIso(to)-parseIso(from))/864e5)+1);
+  S.dates=mkRange(from,n);S.tsFrom=from;S.tsTo=to;
+  var f=parseIso(from),t=parseIso(to);
+  if(f.getDate()===P_START&&t.getDate()===P_END&&(t.getFullYear()*12+t.getMonth())-(f.getFullYear()*12+f.getMonth())===1){S.pMonth=t.getMonth();S.pYear=t.getFullYear()}
+  ensureLists();save();buildPeriod();render();syncBar();
+  say("Imported "+nrows+" log rows into "+order.length+" task lines ("+added+" new, "+upd+" updated"+(skipped?", "+skipped+" blank rows skipped":"")+"). Now showing "+from+" to "+to+". Existing data was kept.");
+  return true}
 function importWb(wb){
   var ws=wb.Sheets[wb.SheetNames[0]];
   var rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null});
+  var rh=rows.findIndex(function(r){return r.some(function(c){return /^logged date$/i.test(String(c==null?"":c).trim())})});
+  if(rh>=0&&importRaw(rows,rh))return;
   var hi=rows.findIndex(function(r){return r.some(function(c){return String(c).trim().toLowerCase()==="task"})});
   if(hi<0)return say('No header row with "Task" found. Keep the template layout: Task, Description, type, then date columns (Project column optional).');
   var hr=rows[hi],tc=hr.findIndex(function(c){return String(c).trim().toLowerCase()==="task"});
