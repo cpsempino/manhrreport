@@ -4,15 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>DISPATCH Man Hour</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+JP:wght@400;500;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#f3f5f8;--panel:#fff;--ink:#1d2733;--mute:#6b7785;--line:#d5dbe3;--head:#4472c4;--est:#0b6fd1;--log:#12a150;--wk:#cfd3d8;--wk-ink:#8a929c;--task:#b4c7e7;--task2:#dbe5f5;
+:root{--bg:#f5f4f0;--panel:#fff;--ink:#1d2327;--mute:#69726f;--line:#e1ded6;--head:#1f5560;--est:#2b6cb0;--log:#2f8f5b;--wk:#e6e4de;--wk-ink:#8a8f8c;--task:#d6e4e1;--task2:#ebf2f0;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12171d;--panel:#1a222b;--ink:#e6ebf1;--mute:#93a0ae;--line:#2c3744;--head:#34568d;--wk:#2a323c;--wk-ink:#6f7a87;--task:#2b3d5c;--task2:#223049}}
-:root[data-theme="dark"]{--bg:#12171d;--panel:#1a222b;--ink:#e6ebf1;--mute:#93a0ae;--line:#2c3744;--head:#34568d;--wk:#2a323c;--wk-ink:#6f7a87;--task:#2b3d5c;--task2:#223049}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181a;--panel:#1c2224;--ink:#e8ecea;--mute:#98a3a0;--line:#2d3638;--head:#2f7585;--wk:#262d2f;--wk-ink:#6f7b78;--task:#26403f;--task2:#1f3032}}
+:root[data-theme="dark"]{--bg:#14181a;--panel:#1c2224;--ink:#e8ecea;--mute:#98a3a0;--line:#2d3638;--head:#2f7585;--wk:#262d2f;--wk-ink:#6f7b78;--task:#26403f;--task2:#1f3032}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 "Segoe UI",system-ui,-apple-system,"Hiragino Sans",sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "IBM Plex Sans","IBM Plex Sans JP","Segoe UI",system-ui,-apple-system,"Hiragino Sans",sans-serif;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
 header{padding:20px 20px 8px}
 h1{margin:0;font-size:22px;font-weight:650}
 header p{margin:4px 0 0;color:var(--mute)}
@@ -153,11 +155,42 @@ table.rep td.crit{background:#e5484d;color:#fff;font-weight:600}
 table.rep tfoot td{background:var(--task2);font-weight:600}
 @media print{.tabs,.bar,.add,#msg,header p{display:none}.wrap{margin:0;border:0}body{background:#fff;color:#000}}
 #msg{padding:0 20px;color:var(--mute);min-height:20px}
+
+/* ---- refreshed look ---- */
+header{padding:26px 20px 10px;max-width:none}
+header::before{content:"MAN-HOUR LOG";display:block;font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--head);margin-bottom:4px}
+h1{font-size:26px;font-weight:700;letter-spacing:-.01em}
+header p{font-size:13px}
+.tabs{gap:6px;padding:10px 20px 12px;border-bottom:0;flex-wrap:wrap}
+.tabs button{border:1px solid transparent;border-radius:999px;padding:7px 16px;font-weight:500;background:transparent;color:var(--mute);transition:background .15s,color .15s}
+.tabs button:hover{background:var(--task2);color:var(--ink)}
+.tabs button.on{background:var(--head);color:#fff;border-color:var(--head);font-weight:600}
+button{border-radius:8px;padding:7px 14px;font-weight:500;transition:background .15s,border-color .15s,box-shadow .15s}
+button:hover{background:var(--task2)}
+button.primary{background:var(--head);border-color:var(--head);color:#fff;font-weight:600}
+button.primary:hover{background:var(--head);filter:brightness(1.12)}
+.bar input,.add input,.add select,.bar select,.card .row input{border-radius:8px;border-color:var(--line);min-height:34px}
+.bar label{font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase}
+.bar label.chk{text-transform:none;letter-spacing:0;font-weight:400}
+.wrap{border-radius:12px;box-shadow:0 1px 2px rgba(20,30,30,.05),0 6px 20px rgba(20,30,30,.04)}
+.card{border-radius:12px;box-shadow:0 1px 2px rgba(20,30,30,.05)}
+.card h2{font-size:14px;font-weight:700;letter-spacing:.01em}
+.chip{background:var(--task2);border:1px solid var(--line)}
+.kpi{border-radius:10px;background:var(--task2);border:1px solid var(--line)}
+.kpi b{font-size:22px;font-weight:700}
+.kpi span{font-weight:500}
+thead th{font-weight:600;letter-spacing:.02em}
+td.c input{font-weight:500}
+td.lab{font-weight:600}
+#sheet caption,table.rep caption{font-weight:700}
+#msg{font-size:13px}
+.rsum{font-size:11.5px;color:var(--mute);text-align:left;padding:0 4px 2px;white-space:normal;line-height:1.3}
+#sheet td.rm{min-width:260px}
 </style>
 </head>
 <body>
 <header>
-  <h1>Man-hour tracker</h1>
+  <h1>Man-Hour Tracker</h1>
   <p>Type hours straight into the grid, or import your Excel sheet. Data stays in this browser.</p>
 </header>
 
@@ -298,7 +331,8 @@ function parseIso(s){var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2])}
 function mkRange(start,n){var a=[],d=parseIso(start);for(var i=0;i<n;i++){a.push(iso(d));d.setDate(d.getDate()+1)}return a}
 function say(t){$("msg").textContent=t}
 function num(v){var n=parseFloat(v);return isNaN(n)?0:n}
-function fmt(n){return n?(Math.round(n*100)/100):""}
+function q4(n){return Math.round(n*4)/4}
+function fmt(n){return n?q4(n):""}
 
 var freshItems=[];
 function render(){
@@ -532,13 +566,13 @@ $("golists").onclick=function(){tab("lists")};
 $("sprint").onclick=function(){window.print()};
 function calc(s){
   var t=S.ts[s]||{},a=hm(t.s),b=hm(t.e),br=(t.b===undefined||t.b==="")?1:num(t.b),r={t:t,a:a,b:b,br:br,w:null,e:0};
-  if(a!==null&&b!==null&&b>a){r.w=Math.max(0,(b-a)/60-br);r.e=Math.max(0,r.w-nomOf(s))}
+  if(a!==null&&b!==null&&b>a){r.w=q4(Math.max(0,(b-a)/60-br));r.e=q4(Math.max(0,r.w-nomOf(s)))}
   return r}
 function hm(v){var m=/^(\d{1,2}):(\d{2})$/.exec(v||"");return m?(+m[1])*60+(+m[2]):null}
 $("sx").onclick=function(){
   var df=tsDates(),out=[["Name",S.tsName||""],["Period",(df[0]||"")+" to "+(df[df.length-1]||"")],[],["DATE","STARTING TIME","CLOSING TIME","BREAK TIME (hr)","WORKING TIME (hrs)","Excess Over Regular","OT","REMARK"]];
   df.forEach(function(s){var c=calc(s),d=parseIso(s);
-    out.push([(d.getMonth()+1)+"/"+d.getDate()+" ("+"SMTWTFS"[d.getDay()]+")",c.t.s||"",c.t.e||"",c.w===null?"":c.br,c.w===null?"":c.w,c.w===null?"":c.e,c.w===null?"":c.e,((c.t.h||"")+(c.t.h&&c.t.r?" - ":"")+(c.t.r||""))])});
+    out.push([(d.getMonth()+1)+"/"+d.getDate()+" ("+"SMTWTFS"[d.getDay()]+")",c.t.s||"",c.t.e||"",c.w===null?"":c.br,c.w===null?"":c.w,c.w===null?"":c.e,c.w===null?"":c.e,[((c.t.h||"")+(c.t.h&&c.t.r?" - ":"")+(c.t.r||"")),daySummary(s)].filter(Boolean).join(" / ")])});
   var ws=XLSX.utils.aoa_to_sheet(out);ws["!cols"]=[{wch:12},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:8},{wch:30}];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Timesheet");
   saveXlsx(wb,"timesheet-"+iso(new Date())+".xlsx")};
@@ -555,6 +589,16 @@ $("tsname").oninput=function(){S.tsName=this.value;save();renderSheet()};
 $("tsfrom").onchange=function(){S.tsFrom=this.value;save();renderSheet();say(tsDates().length?"":"The end date is before the start date.")};
 $("tsto").onchange=function(){S.tsTo=this.value;save();renderSheet();say(tsDates().length?"":"The end date is before the start date.")};
 $("reg").onchange=function(){S.reg=num(this.value);save();renderSheet()};
+function projName(p){return String(p||"").replace(/^\s*\d{7}\s*[-–]?\s*/,"").trim()||String(p||"").trim()}
+function daySummary(s){
+  var g=[],ix={};
+  S.items.forEach(function(it){
+    if(!(num(it.log[s])>0))return;
+    var n=projName(it.project)||"(no project)",t=String(it.task||"").trim(),d=String(it.desc||"").trim();
+    var w=t;if(d&&t.toLowerCase().indexOf(d.toLowerCase())<0)w=(t?t+" ":"")+d;
+    if(ix[n]===undefined){ix[n]=g.length;g.push([n,[]])}
+    if(w&&g[ix[n]][1].indexOf(w)<0)g[ix[n]][1].push(w)});
+  return g.map(function(x){return x[0]+" - "+x[1].join(", ")}).join("; ")}
 function renderSheet(){
   var dts=tsDates();
   setv("reg",S.reg);setv("tsname",S.tsName||"");setv("tsfrom",dts[0]||"");setv("tsto",dts[dts.length-1]||"");
@@ -570,7 +614,7 @@ function renderSheet(){
      +"<td>"+(c.a!==null?inp(s,"b","number",c.br,' step="0.25" min="0" style="width:52px"')+" hr":"")+"</td>"
      +"<td>"+(c.w===null?"":c.w.toFixed(2)+" hrs")+"</td>"
      +"<td>"+(c.w===null?"":(c.e?c.e.toFixed(2):"-"))+"</td><td>"+(c.w===null?"":(c.e?c.e.toFixed(2):"-"))+"</td>"
-     +'<td class="rm"><div class="rmw"><select data-d="'+s+'" data-f="h" aria-label="Day type">'+hopts(t.h)+"</select>"+inp(s,"r","text",t.r)+"</div></td></tr>"});
+     +'<td class="rm"><div class="rmw"><select data-d="'+s+'" data-f="h" aria-label="Day type">'+hopts(t.h)+"</select>"+inp(s,"r","text",t.r)+"</div>"+(daySummary(s)?'<div class="rsum">'+esc(daySummary(s))+"</div>":"")+"</td></tr>"});
   $("sheet").innerHTML=h+'</tbody><tfoot><tr><td>TOTAL</td><td></td><td></td><td></td><td>'+tw.toFixed(2)+" hrs</td><td>"+te.toFixed(2)+"</td><td>"+te.toFixed(2)+"</td><td></td></tr></tfoot>";
 }
 $("grid").addEventListener("change",function(e){
