@@ -77,6 +77,13 @@ tfoot td{background:var(--task2);font-weight:600;padding:5px 6px}
 #grid .fc4{left:calc(var(--w1) + var(--w2) + var(--w3));width:var(--w4);min-width:var(--w4);max-width:var(--w4)}
 #grid .fc5{left:calc(var(--w1) + var(--w2) + var(--w3) + var(--w4));width:var(--w5);min-width:var(--w5);max-width:var(--w5);box-shadow:2px 0 0 var(--line)}
 #grid th.fc{overflow:visible}
+#grid td.rg{cursor:pointer}#grid td.rg:hover{background:var(--task)}
+#rgpop{position:fixed;z-index:60;top:0;left:0;width:350px}
+#rgpop .ttl{font-weight:600;line-height:1.3}#rgpop .ttl small{display:block;font-weight:400;color:var(--mute)}
+#rgpop label{display:flex;flex-direction:column;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;color:var(--mute);gap:2px}
+#rgpop label.chk{flex-direction:row;align-items:center;gap:5px;text-transform:none;letter-spacing:0;font-weight:400;font-size:13px;color:var(--ink)}
+#rgpop input[type=number],#rgpop select{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);width:100%}
+.calg button.cd.sel small{opacity:1}
 #grid .rz{position:absolute;top:0;right:-3px;bottom:0;width:7px;cursor:col-resize;z-index:6;touch-action:none}
 #grid .rz:hover,#grid .rz.on{background:rgba(255,255,255,.55)}
 #grid td.fc{overflow:hidden;text-overflow:ellipsis}
@@ -211,7 +218,7 @@ td.lab{font-weight:600}
 </head>
 <body>
 <header>
-  <h1>Man-hour tracker</h1>
+  <h1>Man-Hour Tracker</h1>
   <p>Type hours straight into the grid, or import your Excel sheet. Data stays in this browser.</p>
 </header>
 
@@ -248,7 +255,17 @@ td.lab{font-weight:600}
   <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
   <button id="imp" class="primary">Import Excel</button>
   <button id="exp">Export Excel</button>
-  <button id="clr">Clear all</button>
+  <span style="position:relative;display:inline-block">
+    <button id="clrbtn" aria-haspopup="true">Clear ▾</button>
+    <div id="clrpop" class="pop" hidden style="left:auto;right:0;width:320px">
+      <div class="prow"><b>Clear a date range</b></div>
+      <div class="prow"><label>From<input type="date" id="clrf"></label><label>To<input type="date" id="clrt"></label></div>
+      <div class="prow" style="justify-content:flex-start;gap:12px"><label class="chk"><input type="checkbox" id="clrlog" checked>Logged hours</label><label class="chk"><input type="checkbox" id="clrest" checked>Estimated hours</label></div>
+      <div class="prow"><label class="chk"><input type="checkbox" id="clrtask">Also remove tasks left with no hours</label></div>
+      <div class="prow"><button type="button" id="clrper">Whole period</button><button type="button" id="clrgo" class="primary">Clear range</button></div>
+      <div class="prow" style="border-top:1px solid var(--line);padding-top:8px;margin-top:4px"><span class="hint">Everything, all dates</span><button type="button" id="clr">Clear all…</button></div>
+    </div>
+  </span>
 </div>
 
 <div class="bar" id="wsbar">
@@ -285,6 +302,7 @@ td.lab{font-weight:600}
 </div>
 </div>
 <div class="wrap" id="gridwrap"><table id="grid"></table></div>
+<div id="rgpop" class="pop" hidden></div>
 
 <div class="add">
   <select id="np"></select>
@@ -321,7 +339,15 @@ td.lab{font-weight:600}
 </section>
 
 <section id="v-dash" hidden>
-  <div class="bar"><label>Season year<input type="number" id="dyear" style="width:90px"></label><label>View<select id="dview" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="both">Midterm and Finals</option><option value="mid">Midterm only</option><option value="fin">Finals only</option></select></label><span class="hint" id="dlabel" style="padding-bottom:8px"></span></div>
+  <div class="bar" id="dbar">
+    <label>Season year<input type="number" id="dyear" style="width:90px"></label>
+    <label class="chk"><input type="checkbox" id="dmid">Midterm</label>
+    <label class="chk"><input type="checkbox" id="dfin">Finals</label>
+    <label class="chk"><input type="checkbox" id="dcus">Date range</label>
+    <label>From<input type="date" id="dfrom"></label><label>To<input type="date" id="dto"></label>
+    <button id="dapply" class="primary">Apply</button>
+    <span class="hint" id="dlabel" style="padding-bottom:8px"></span>
+  </div>
   <div class="lists" id="dash"></div>
   <div class="bar">
     <strong style="padding-bottom:6px">Logged time and OT by half-month</strong><span class="sp"></span>
@@ -428,7 +454,7 @@ function render(){
     ["est","log"].forEach(function(k,r){
       var tot=0;
       h+="<tr>";
-      if(!r)h+='<td class="lab fc fc1" rowspan="2" title="'+esc(it.project||"")+'">'+esc(it.project||"")+'</td><td class="lab fc fc2" rowspan="2" title="'+esc(it.task)+'">'+esc(it.task)+'</td><td class="lab2 fc fc3" rowspan="2" title="'+esc(it.desc)+'">'+esc(it.desc)+'</td><td class="lab2 fc fc4" rowspan="2"><select class="tg" data-tg="'+i+'" aria-label="Target">'+topts(it.target)+"</select></td>";
+      if(!r)h+='<td class="lab fc fc1" rowspan="2" title="'+esc(it.project||"")+'">'+esc(it.project||"")+'</td><td class="lab fc fc2" rowspan="2" title="'+esc(it.task)+'">'+esc(it.task)+'</td><td class="lab2 fc fc3 rg" rowspan="2" data-rg="'+i+'" title="Click to pick a date range for this activity">'+esc(it.desc)+'</td><td class="lab2 fc fc4" rowspan="2"><select class="tg" data-tg="'+i+'" aria-label="Target">'+topts(it.target)+"</select></td>";
       h+='<td class="type fc fc5">'+(k==="est"?"Estimated Time":"Logged Time")+"</td>";
       S.dates.forEach(function(s){
         var v=it[k][s],w=parseIso(s).getDay()%6===0;tot+=num(v);
@@ -470,7 +496,25 @@ $("addb").onclick=function(){
   var t=$("nt").value.trim(),d=$("nd").value.trim();
   if(!t)return say("Pick a task name. Add choices in the Lists tab.");
   S.items.push({project:$("np").value.trim(),target:$("ng").value,task:t,desc:d||"Checking",est:{},log:{}});freshItems.push(S.items[S.items.length-1]);$("nt").value="";save();render();say("")};
-$("clr").onclick=function(){if(confirm("Remove all tasks and hours?")){S.items=[];save();render()}};
+$("clr").onclick=function(){if(confirm("Remove all tasks and hours?")){S.items=[];save();render();$("clrpop").hidden=true}};
+$("clrbtn").onclick=function(e){e.stopPropagation();var p=$("clrpop");$("calpop").hidden=true;$("rgpop").hidden=true;p.hidden=!p.hidden;
+  if(!p.hidden&&S.dates.length){if(!$("clrf").value)$("clrf").value=S.dates[0];if(!$("clrt").value)$("clrt").value=S.dates[S.dates.length-1]}};
+$("clrpop").addEventListener("click",function(e){e.stopPropagation()});
+$("clrper").onclick=function(){if(S.dates.length){$("clrf").value=S.dates[0];$("clrt").value=S.dates[S.dates.length-1]}};
+$("clrgo").onclick=function(){
+  var a=$("clrf").value,b=$("clrt").value,L=$("clrlog").checked,E=$("clrest").checked;
+  if(!a||!b||a>b)return say("Pick a From and To date (From must not be after To).");
+  if(!L&&!E)return say("Tick Logged hours, Estimated hours, or both.");
+  var days=rangeDays(a,b);if(days.length>800)days=days.slice(0,800);
+  if(!confirm("Clear "+(L&&E?"logged and estimated":L?"logged":"estimated")+" hours from "+a+" to "+b+"?"))return;
+  var n=0;
+  S.items.forEach(function(it){days.forEach(function(d){
+    if(L&&it.log[d]){delete it.log[d];n++}
+    if(E&&it.est[d]){delete it.est[d];n++}})});
+  var rm=0;
+  if($("clrtask").checked){var keep=S.items.filter(function(it){return Object.keys(it.log).length||Object.keys(it.est).length});rm=S.items.length-keep.length;S.items=keep}
+  $("clrpop").hidden=true;save();render();
+  say("Cleared "+n+" entr"+(n===1?"y":"ies")+" from "+a+" to "+b+(rm?" and removed "+rm+" empty task"+(rm===1?"":"s"):"")+".")};
 
 // ---------- Excel import ----------
 $("imp").onclick=function(){$("file").click()};
@@ -1013,13 +1057,27 @@ function dashPart(name,a,b){
         h+='<tr class="sub"><td style="padding-left:30px">– '+t[1]+"</td><td>"+fmt(lv)+"</td><td>"+fmt(ev)+"</td><td>"+sgn(lv-ev)+"</td></tr>"})});
     h+="<tr><th>Total</th><th>"+fmt(P.l)+"</th><th>"+fmt(P.e)+"</th><th>"+sgn(P.l-P.e)+"</th></tr></table></div></div>"});
   return h+"</div>"}
+function dashCfg(){
+  var c=S.dashCfg;
+  if(!c){var v=S.dashView||"both";c={y:dashYear(),mid:v!=="fin",fin:v!=="mid",cus:false,from:S.dates[0]||"",to:S.dates[S.dates.length-1]||""}}
+  return c}
 function renderDash(){
-  var y=dashYear(),v=S.dashView||"both";setv("dyear",y);setv("dview",v);
-  $("dlabel").textContent="Midterm: Apr 23 – Oct 22 · Finals: Oct 23 – Mar 22 (next year)";
-  $("dash").className="lists"+(v==="both"?"":" single");
-  $("dash").innerHTML=(v!=="fin"?dashPart("Midterm",y+"-04-23",y+"-10-22"):"")+(v!=="mid"?dashPart("Finals",y+"-10-23",(y+1)+"-03-22"):"")}
-$("dview").onchange=function(){S.dashView=this.value;save();render()};
-$("dyear").onchange=function(){var v=parseInt(this.value,10);if(v>1999&&v<2100){S.dashYear=v;save();render()}};
+  var c=dashCfg();
+  setv("dyear",c.y);$("dmid").checked=!!c.mid;$("dfin").checked=!!c.fin;$("dcus").checked=!!c.cus;setv("dfrom",c.from||"");setv("dto",c.to||"");
+  $("dlabel").textContent="Midterm: Apr 23 – Oct 22 · Finals: Oct 23 – Mar 22 (next year). Change the options, then press Apply.";
+  var parts=[];
+  if(c.mid)parts.push(dashPart("Midterm",c.y+"-04-23",c.y+"-10-22"));
+  if(c.fin)parts.push(dashPart("Finals",c.y+"-10-23",(c.y+1)+"-03-22"));
+  if(c.cus&&c.from&&c.to&&c.from<=c.to)parts.push(dashPart("Date range",c.from,c.to));
+  $("dash").className="lists"+(parts.length>1?"":" single");
+  $("dash").innerHTML=parts.join("")||'<div class="card"><p class="hint">Nothing selected. Tick Midterm, Finals or Date range, then press Apply.</p></div>'}
+$("dapply").onclick=function(){
+  var y=parseInt($("dyear").value,10),m=$("dmid").checked,f=$("dfin").checked,cu=$("dcus").checked,a=$("dfrom").value,b=$("dto").value;
+  if(!m&&!f&&!cu)return say("Tick at least one of Midterm, Finals or Date range.");
+  if((m||f)&&!(y>1999&&y<2100))return say("Enter a season year such as 2026.");
+  if(cu&&(!a||!b||a>b))return say("Pick a From and To date for the date range (From must not be after To).");
+  S.dashCfg={y:(y>1999&&y<2100)?y:dashCfg().y,mid:m,fin:f,cus:cu,from:a,to:b};save();render();
+  say("Dashboard updated.")};
 var calSel={};
 function renderCal(){
   var mo={},h="";
@@ -1036,8 +1094,9 @@ function renderCal(){
   $("calgrid").innerHTML=h||'<span class="hint">No dates in range.</span>';
   var n=Object.keys(calSel).length;$("calcount").textContent=n?n+" selected":"Click days to select"}
 function calDays(){var d=Object.keys(calSel);if(!d.length)say("Select some days on the calendar first.");return d}
-$("calbtn").onclick=function(e){e.stopPropagation();var p=$("calpop");p.hidden=!p.hidden;if(!p.hidden){fillSelects();renderCal()}};
-document.addEventListener("click",function(){$("calpop").hidden=true});
+$("calbtn").onclick=function(e){e.stopPropagation();$("clrpop").hidden=true;$("rgpop").hidden=true;var p=$("calpop");p.hidden=!p.hidden;if(!p.hidden){fillSelects();renderCal()}};
+document.addEventListener("click",function(){$("calpop").hidden=true;$("clrpop").hidden=true;$("rgpop").hidden=true});
+document.addEventListener("keydown",function(e){if(e.key==="Escape"){$("calpop").hidden=true;$("clrpop").hidden=true;$("rgpop").hidden=true}});
 $("calpop").addEventListener("click",function(e){
   e.stopPropagation();
   var b=e.target.closest("[data-cd]");if(!b)return;
@@ -1059,6 +1118,70 @@ $("caldtgo").onclick=function(){
   ds.forEach(function(d){var o=S.ts[d]=S.ts[d]||{};o.h=v});
   save();render();say((v?"Day type "+v:"Day type cleared")+" on "+ds.length+" day"+(ds.length===1?"":"s")+".")};
 $("hideempty").onchange=function(){S.hideEmpty=this.checked;save();render()};
+
+// ---------- activity date-range calendar ----------
+var rgI=-1,rgSel={},rgAnchor=null,rgOpt={f:"log",h:1,skip:true,ow:false};
+function rgRender(){
+  var it=S.items[rgI],p=$("rgpop");if(!it){p.hidden=true;return}
+  var mo={},h='<div class="prow"><div class="ttl">'+esc(it.task)+" · "+esc(it.desc)+"<small>"+esc(it.project||"(no project)")+"</small></div></div>";
+  S.dates.forEach(function(d){(mo[d.slice(0,7)]=mo[d.slice(0,7)]||[]).push(d)});
+  Object.keys(mo).sort().forEach(function(k){
+    var first=parseIso(mo[k][0]);
+    h+='<div class="ml">'+MN[first.getMonth()]+" "+first.getFullYear()+'</div><div class="calg">';
+    "SMTWTFS".split("").forEach(function(x){h+='<div class="dh">'+x+"</div>"});
+    for(var i=0;i<first.getDay();i++)h+="<div></div>";
+    mo[k].forEach(function(d){
+      var dt=parseIso(d),wd=dt.getDay(),v=it[rgOpt.f][d],off=nomDef(d)===0;
+      h+='<button type="button" class="cd'+(rgSel[d]?" sel":"")+((wd===0||wd===6||off)?" wk":"")+'" data-rd="'+d+'" title="'+d+((S.ts[d]||{}).h?" · "+esc(S.ts[d].h):"")+'">'+dt.getDate()+(v?"<small>"+v+"</small>":"")+"</button>"});
+    h+="</div>"});
+  var n=Object.keys(rgSel).length;
+  h+='<div class="prow" style="margin-top:8px"><span class="hint">'+(rgAnchor?"Now click the last day of the range":"Click a first day, then a last day")+" · "+n+' selected</span></div>';
+  h+='<div class="prow" style="justify-content:flex-start"><button type="button" data-rq="wk">All weekdays</button><button type="button" data-rq="all">All days</button><button type="button" data-rq="clr">Clear selection</button></div>';
+  h+='<div class="prow" style="align-items:end"><label style="flex:1">Hours per day<input type="number" id="rgh" step="0.25" min="0" value="'+esc(rgOpt.h)+'"></label><label style="flex:1">Apply to<select id="rgf"><option value="log"'+(rgOpt.f==="log"?" selected":"")+'>Logged time</option><option value="est"'+(rgOpt.f==="est"?" selected":"")+'>Estimated time</option></select></label></div>';
+  h+='<div class="prow" style="justify-content:flex-start;gap:14px"><label class="chk"><input type="checkbox" id="rgskip"'+(rgOpt.skip?" checked":"")+'>Skip weekends and holidays</label><label class="chk"><input type="checkbox" id="rgow"'+(rgOpt.ow?" checked":"")+'>Overwrite filled days</label></div>';
+  h+='<div class="prow"><button type="button" id="rgdel">Clear selected days</button><button type="button" id="rgapply" class="primary">Apply</button></div>';
+  p.innerHTML=h}
+function rgOpen(i,cell){
+  rgI=i;rgSel={};rgAnchor=null;$("calpop").hidden=true;$("clrpop").hidden=true;
+  var p=$("rgpop");p.hidden=false;rgRender();
+  var r=cell.getBoundingClientRect();
+  p.style.left=Math.max(8,Math.min(r.left,window.innerWidth-p.offsetWidth-8))+"px";
+  p.style.top=Math.max(8,Math.min(r.bottom+4,window.innerHeight-Math.min(p.offsetHeight,window.innerHeight*.8)-8))+"px"}
+$("grid").addEventListener("click",function(e){
+  var c=e.target.closest("td.rg");if(!c)return;e.stopPropagation();rgOpen(+c.dataset.rg,c)});
+$("rgpop").addEventListener("click",function(e){
+  e.stopPropagation();
+  var b=e.target.closest("button");if(!b)return;
+  if(b.dataset.rd){
+    var d=b.dataset.rd;
+    if(rgAnchor){var a=rgAnchor<d?rgAnchor:d,z=rgAnchor<d?d:rgAnchor;S.dates.forEach(function(x){if(x>=a&&x<=z)rgSel[x]=true});rgAnchor=null}
+    else if(rgSel[d])delete rgSel[d];
+    else{rgSel[d]=true;rgAnchor=d}
+    return rgRender()}
+  if(b.dataset.rq){
+    rgAnchor=null;if(b.dataset.rq==="clr")rgSel={};
+    else{rgSel={};S.dates.forEach(function(x){var w=parseIso(x).getDay();if(b.dataset.rq==="all"||(w>0&&w<6))rgSel[x]=true})}
+    return rgRender()}
+  var it=S.items[rgI];if(!it)return;
+  var ds=Object.keys(rgSel).sort();
+  if(b.id==="rgapply"||b.id==="rgdel"){
+    if(!ds.length)return say("Select some days on the calendar first.");
+    var f=rgOpt.f,n=0,off=0,filled=0;
+    if(b.id==="rgdel"){ds.forEach(function(d){if(it[f][d]){delete it[f][d];n++}});save();render();$("rgpop").hidden=true;return say("Cleared "+n+" day"+(n===1?"":"s")+" of "+(f==="log"?"logged":"estimated")+" time for "+it.task+" · "+it.desc+".")}
+    var hr=num(rgOpt.h);if(!(hr>0))return say("Enter the hours per day first.");
+    ds.forEach(function(d){
+      if(rgOpt.skip&&nomDef(d)===0){off++;return}
+      if(!rgOpt.ow&&it[f][d]){filled++;return}
+      it[f][d]=hr;n++});
+    save();render();$("rgpop").hidden=true;
+    say("Set "+hr+" hr"+(hr===1?"":"s")+" of "+(f==="log"?"logged":"estimated")+" time on "+n+" day"+(n===1?"":"s")+(off?", skipped "+off+" weekend/holiday":"")+(filled?", left "+filled+" filled day"+(filled===1?"":"s")+" as is":"")+".")}});
+$("rgpop").addEventListener("change",function(e){
+  var t=e.target;
+  if(t.id==="rgh")rgOpt.h=t.value;
+  if(t.id==="rgf"){rgOpt.f=t.value;rgRender()}
+  if(t.id==="rgskip")rgOpt.skip=t.checked;
+  if(t.id==="rgow")rgOpt.ow=t.checked});
+$("rgpop").addEventListener("input",function(e){if(e.target.id==="rgh")rgOpt.h=e.target.value});
 var TMS_ROWS=["Project Monitoring & Documentation","P&ID/ Flow Sheet","PMS/ Database Inputt","Pipe Modeling","Pipe Support Modeling","Equipment Modeling","Structure Modeling","Floor Modeling","Piping Layout Drawing","Equipment Layout Drawings","Spool Drawings","Pipe Support Detail Drawings","BQ/BOM","Scan Data Processing"];
 var TMS_ST=["On-going","Not started","On hold","Completed"];
 function r2(v){return Math.round(v*100)/100}
