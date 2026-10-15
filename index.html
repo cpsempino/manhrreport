@@ -409,7 +409,7 @@ function render(){
   S.dates.forEach(function(s){var d=parseIso(s),w=d.getDay()%6===0;
     h+='<th class="'+(dayCls(s)||(w?"wk":""))+'"'+(dayCls(s)?' title="'+esc((S.ts[s]||{}).h||"")+'"':"")+'>'+(d.getMonth()+1)+"/"+d.getDate()+"<small>"+"SMTWTFS"[d.getDay()]+"</small></th>"});
   h+="<th>Total</th><th></th></tr>";
-  h+='<tr class="dtype"><th class="fcw" colspan="5" style="text-align:left">Day type</th>';
+  h+='<tr class="dtype"><th class="fcw" colspan="7" style="text-align:left">Day type</th>';
   S.dates.forEach(function(s){
     var cur=(S.ts[s]||{}).h||"";
     var opts='<option value="">—</option>'+S.lists.holidays.map(function(x){return"<option"+(x===cur?" selected":"")+">"+esc(x)+"</option>"}).join("");
