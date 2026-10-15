@@ -214,6 +214,10 @@ td.lab{font-weight:600}
 .tabs button.on{background:var(--bg);color:var(--head);border-color:var(--line);border-top:3px solid var(--head);padding-top:7px;position:relative;z-index:1;font-weight:700}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tabs button.on{color:var(--ink)}}
 .dprow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.dprow input{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);min-height:32px}.dprow input[type=text]{flex:1;min-width:0}
+#tipbox{position:fixed;z-index:200;max-width:270px;padding:7px 10px;border-radius:8px;background:#1d2327;color:#f3f5f4;font-size:12px;line-height:1.4;font-weight:400;letter-spacing:0;text-transform:none;box-shadow:0 6px 18px rgba(0,0,0,.28);pointer-events:none;opacity:0;transition:opacity .12s}
+#tipbox.on{opacity:1}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #tipbox{background:#e8ecea;color:#14181a}}
+@media print{#tipbox{display:none}}
 </style>
 </head>
 <body>
@@ -252,6 +256,7 @@ td.lab{font-weight:600}
   </span>
   <span class="sp"></span>
   <label class="chk" style="padding-bottom:6px"><input type="checkbox" id="hideempty" checked>Hide tasks with no hours</label>
+  <label class="chk" style="padding-bottom:6px"><input type="checkbox" id="tipson" checked>Hover hints</label>
   <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
   <button id="imp" class="primary">Import Excel</button>
   <button id="exp">Export Excel</button>
@@ -329,13 +334,13 @@ td.lab{font-weight:600}
   </div>
   <div class="wrap"><table id="tmsover" class="rep"></table></div>
   <div class="wrap" style="padding:10px"><table id="tmshead" class="tmsh"></table></div>
-  <div class="wrap"><table id="tmstab" class="rep"></table></div>
+  <div id="tmstab"></div>
   <div class="add">
     <input id="tmsnew" list="tmsdl" placeholder="Add a work scope row" style="min-width:260px"><datalist id="tmsdl"></datalist>
     <button id="tmsadd" class="primary">Add row</button>
     <button id="tmsreset">Reset rows to template</button>
   </div>
-  <div class="hint" style="padding:0 20px 24px">Actual MH is the logged time from the Tracker for this project, added up by work scope (the Tracker task name). Tracker tasks that don't match any row are totalled under "Other work not listed above". Plan MH, efficiency and status are typed in. The Tracking column compares Actual with Plan: On track, Near plan (at or above the warning percentage) or Over plan.</div>
+  <div class="hint" style="padding:0 20px 24px">Actual MH is the logged time from the Tracker for this project, added up by work scope (the Tracker task name). Tracker tasks that don't match any row are totalled under "Other work not listed above". Plan MH, efficiency and status are typed in. The Tracking column compares Actual with Plan: On track, Near plan (at or above the warning percentage) or Over plan. When tasks of a project have a Target set on the Tracker, one table is shown per Target, each counting only that Target’s hours; with no Target set you get the single table.</div>
 </section>
 
 <section id="v-dash" hidden>
@@ -434,7 +439,7 @@ function fmt(n){return n?q4(n):""}
 var freshItems=[];
 function render(){
   autoHol();optsUi();applyColW();
-  $("hideempty").checked=S.hideEmpty!==false;
+  $("hideempty").checked=S.hideEmpty!==false;$("tipson").checked=!S.noTips;
   if(S.dates.length){var a=$("bf").value,b=$("bto").value,f0=S.dates[0],l0=S.dates[S.dates.length-1];
     if(!a||a<f0||a>l0)$("bf").value=f0;if(!b||b<f0||b>l0)$("bto").value=l0}fillSelects();renderLists();renderSheet();if(!$("calpop").hidden)renderCal();renderWeekly();renderHalves();renderDash();renderTms();renderDispatch();
   var g=$("grid"),h="<thead><tr><th class=\"fc fc1\">Project<i class=\"rz\" data-rz=\"1\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc2\">Task<i class=\"rz\" data-rz=\"2\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc3\">Description<i class=\"rz\" data-rz=\"3\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc4\">Target<i class=\"rz\" data-rz=\"4\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc5\"><i class=\"rz\" data-rz=\"5\" title=\"Drag to resize, double-click to reset\"></i></th>";
@@ -1198,6 +1203,18 @@ function tmsMatch(rows,task){
   return -1}
 function tmsRows(){return TMS_ROWS.map(function(n){return{n:n,plan:0,eff:100,st:"On-going"}})}
 function tmsCfg(p){return(S.tms&&S.tms[p])||{rows:tmsRows()}}
+function tmsRowsOf(p,tk){var c=tmsCfg(p);if(!tk)return c.rows||tmsRows();return(c.tg&&c.tg[tk]&&c.tg[tk].rows)||tmsRows()}
+function tmsEditRows(p,tk){var c=tmsEdit(p);if(!tk)return c.rows;c.tg=c.tg||{};if(!c.tg[tk])c.tg[tk]={rows:tmsRows()};return c.tg[tk].rows}
+function tmsGroups(p){
+  var tg={},any=false,none=false;
+  S.items.forEach(function(it){
+    if((it.project||"")!==p)return;
+    var h=Object.keys(it.log||{}).some(function(d){return num(it.log[d])>0});if(!h)return;
+    if(it.target){tg[it.target]=1;any=true}else none=true});
+  if(!any)return[undefined];
+  var known=(S.lists&&S.lists.targets)||[],o=known.filter(function(t){return tg[t]}).concat(Object.keys(tg).filter(function(t){return known.indexOf(t)<0}).sort());
+  if(none)o.push("");
+  return o}
 function tmsEdit(p){S.tms=S.tms||{};if(!S.tms[p])S.tms[p]={rows:tmsRows()};if(!S.tms[p].rows)S.tms[p].rows=tmsRows();return S.tms[p]}
 function tmsDefs(p){return{no:(/\d{7}/.exec(p)||[""])[0],name:p.replace(/\d{7}/,"").replace(/^[\s\-–_:]+/,"").trim()||p}}
 function tmsProjects(){var l=((S.lists&&S.lists.projects)||[]).slice();S.items.forEach(function(it){if(it.project&&l.indexOf(it.project)<0)l.push(it.project)});return l}
@@ -1210,10 +1227,11 @@ function tmsFlag(plan,act,warn){
   if(act>plan)return["crit","Over plan"];
   if(act/plan*100>=warn)return["warn","Near plan"];
   return["ok","On track"]}
-function tmsCalc(p){
-  var c=tmsCfg(p),rows=c.rows,act=rows.map(function(){return 0}),other=0,names={},first=null,last=null,from=c.from||"",to=c.to||"";
+function tmsCalc(p,tk){
+  var c=tmsCfg(p),rows=tmsRowsOf(p,tk),act=rows.map(function(){return 0}),other=0,names={},first=null,last=null,from=c.from||"",to=c.to||"";
   S.items.forEach(function(it){
     if((it.project||"")!==p)return;
+    if(tk!==undefined&&(it.target||"")!==tk)return;
     var h=0;
     Object.keys(it.log).forEach(function(d){
       var v=num(it.log[d]);if(!v)return;
@@ -1224,12 +1242,13 @@ function tmsCalc(p){
     if(i>=0)act[i]+=h;else{other+=h;names[it.task||"(no task)"]=1}});
   var df=from||first,dt=to||last,nom=0;
   if(df&&dt&&df<=dt){var l=rangeDays(df,dt);if(l.length>800)l=l.slice(0,800);l.forEach(function(d){nom+=nomOf(d)})}
-  return{c:c,act:act,other:other,otherNames:Object.keys(names),df:df,dt:dt,nom:nom}}
-function tmsPlan(k){var t=0;k.c.rows.forEach(function(r){t+=num(r.plan)});return t}
+  return{c:c,rows:rows,tk:tk,act:act,other:other,otherNames:Object.keys(names),df:df,dt:dt,nom:nom}}
+function tmsPlan(k){var t=0;k.rows.forEach(function(r){t+=num(r.plan)});return t}
 function tmsAct(k){var t=k.other;k.act.forEach(function(a){t+=a});return t}
+function tmsSum(p){var pl=0,ac=0;tmsGroups(p).forEach(function(g){var k=tmsCalc(p,g);pl+=tmsPlan(k);ac+=tmsAct(k)});return{plan:pl,act:ac}}
 function renderTms(){
   var ae=document.activeElement,key=null;
-  if(ae&&ae.dataset&&ae.dataset.tf!==undefined&&$("v-tms").contains(ae))key='[data-tf="'+ae.dataset.tf+'"][data-ti="'+(ae.dataset.ti===undefined?"":ae.dataset.ti)+'"]';
+  if(ae&&ae.dataset&&ae.dataset.tf!==undefined&&$("v-tms").contains(ae))key='[data-tf="'+ae.dataset.tf+'"][data-ti="'+(ae.dataset.ti===undefined?"":ae.dataset.ti)+'"][data-tk="'+(ae.dataset.tk||"").replace(/"/g,'\\"')+'"]';
   var warn=tmsWarn(),basis=S.tmsOcc||"plan",list=tmsProjects(),cur=tmsCur(),sel=$("tmsproj");
   if(document.activeElement!==sel)sel.innerHTML=list.length?list.map(function(p){return"<option"+(p===cur?" selected":"")+">"+esc(p)+"</option>"}).join(""):'<option value="">(no projects)</option>';
   setv("tmswarn",warn);setv("tmsocc",basis);
@@ -1237,7 +1256,7 @@ function renderTms(){
   var h='<caption>All projects</caption><thead><tr><th>Project</th><th>Plan MH</th><th>Actual MH</th><th>Remaining MH</th><th>Used</th><th>Tracking</th></tr></thead><tbody>',tp=0,ta=0;
   if(!list.length)h+='<tr><td colspan="6" class="hint" style="padding:18px">No projects yet. Add one in the Lists tab or the Tracker.</td></tr>';
   list.forEach(function(p){
-    var k=tmsCalc(p),plan=tmsPlan(k),act=tmsAct(k),f=tmsFlag(plan,act,warn);tp+=plan;ta+=act;
+    var sm=tmsSum(p),plan=sm.plan,act=sm.act,f=tmsFlag(plan,act,warn);tp+=plan;ta+=act;
     h+='<tr'+(p===cur?' style="outline:2px solid var(--head);outline-offset:-2px"':"")+'><td class="l"><button class="lnk" data-pick="'+esc(p)+'">'+esc(p)+'</button></td><td>'+f0(plan)+"</td><td>"+f0(act)+'</td><td class="'+(plan-act<0?"neg":"")+'">'+f0(plan-act)+"</td><td>"+(plan?pc(act/plan*100,0):"–")+'</td><td class="'+f[0]+'">'+f[1]+"</td></tr>"});
   var tf0=tmsFlag(tp,ta,warn);
   h+="</tbody>"+(list.length>1?'<tfoot><tr><td style="text-align:left">All projects</td><td>'+f0(tp)+"</td><td>"+f0(ta)+'</td><td class="'+(tp-ta<0?"neg":"")+'">'+f0(tp-ta)+"</td><td>"+(tp?pc(ta/tp*100,0):"–")+'</td><td class="'+tf0[0]+'">'+tf0[1]+"</td></tr></tfoot>":"");
@@ -1246,23 +1265,28 @@ function renderTms(){
   var k=tmsCalc(cur),c=k.c,d=tmsDefs(cur);
   var inp=function(f,v){return'<input type="text" data-tf="'+f+'" data-ti="" value="'+esc(v)+'">'};
   $("tmshead").innerHTML='<tr><td class="tl">Project No.</td><td class="in">'+inp("no",c.no===undefined?d.no:c.no)+'</td><td class="tl">Role in the project</td><td class="in">'+inp("role",c.role||"")+'</td></tr><tr><td class="tl">Project Name:</td><td class="in">'+inp("name",c.name===undefined?d.name:c.name)+'</td><td class="tl">Duration:</td><td class="in"><input type="date" data-tf="from" data-ti="" value="'+(k.df||"")+'"> – <input type="date" data-tf="to" data-ti="" value="'+(k.dt||"")+'"> <span class="hint">'+(c.from||c.to?"set by you":"auto, from logged dates")+"</span></td></tr>";
-  var occ=function(pl,ac){var v=basis==="actual"?ac:pl;return k.nom>0?pc(v/k.nom*100,1):"–"};
   var stOpts=function(v){var l=TMS_ST.slice();if(v&&l.indexOf(v)<0)l.push(v);return l.map(function(x){return"<option"+(x===v?" selected":"")+">"+esc(x)+"</option>"}).join("")};
-  var T='<caption>Nominal hours in the duration: <b>'+f0(k.nom)+' hrs</b> <span class="hint">· Occupancy = '+(basis==="actual"?"Actual":"Plan")+" MH ÷ nominal hours</span></caption>"
-    +'<thead><tr><th>#</th><th>Work Scope</th><th>Plan MH</th><th>Actual MH</th><th>Remaining MH</th><th>Used</th><th>Occupancy<br>(Nominal)</th><th>Efficiency<br>&amp; Quality (%)</th><th>Status</th><th>Tracking</th><th></th></tr></thead><tbody>',plan=0,act=0;
-  c.rows.forEach(function(r,i){
-    var a=k.act[i],pl=num(r.plan),f=tmsFlag(pl,a,warn);plan+=pl;act+=a;
-    T+='<tr><td>'+(i+1)+'</td><td class="l in"><input type="text" class="nm" data-tf="n" data-ti="'+i+'" value="'+esc(r.n)+'" aria-label="Work scope"></td>'
-     +'<td class="in"><input type="number" step="0.5" min="0" data-tf="plan" data-ti="'+i+'" value="'+(pl||"")+'" placeholder="0" aria-label="Plan MH"></td>'
-     +"<td>"+f0(a)+'</td><td class="'+(pl-a<0?"neg":"")+'">'+f0(pl-a)+"</td><td>"+(pl?pc(a/pl*100,0):"–")+"</td><td>"+occ(pl,a)+"</td>"
-     +'<td class="in"><input type="number" step="1" min="0" data-tf="eff" data-ti="'+i+'" value="'+(r.eff===undefined?100:r.eff)+'" aria-label="Efficiency and quality"></td>'
-     +'<td class="in"><select data-tf="st" data-ti="'+i+'" aria-label="Status">'+stOpts(r.st)+"</select></td>"
-     +'<td class="'+f[0]+'">'+f[1]+'</td><td><button class="del" data-tdel="'+i+'" title="Remove this work scope" aria-label="Remove row">✕</button></td></tr>'});
-  if(k.other>0){act+=k.other;
-    T+='<tr class="np"><td>–</td><td class="l">Other work not listed above <span class="hint">('+esc(k.otherNames.join(", "))+")</span></td><td>–</td><td>"+f0(k.other)+"</td><td></td><td></td><td>"+(basis==="actual"?occ(0,k.other):"–")+"</td><td></td><td></td><td></td><td></td></tr>"}
-  var tf=tmsFlag(plan,act,warn);
-  T+='</tbody><tfoot><tr><td></td><td style="text-align:right">Total</td><td>'+f0(plan)+"</td><td>"+f0(act)+'</td><td class="'+(plan-act<0?"neg":"")+'">'+f0(plan-act)+"</td><td>"+(plan?pc(act/plan*100,0):"–")+"</td><td>"+occ(plan,act)+'</td><td></td><td></td><td class="'+tf[0]+'">'+tf[1]+"</td><td></td></tr></tfoot>";
-  $("tmstab").innerHTML=T;
+  var groups=tmsGroups(cur),all="";
+  groups.forEach(function(g){
+    var kk=groups.length===1&&g===undefined?k:tmsCalc(cur,g),tk=g||"",ea=esc(tk);
+    var occ=function(pl,ac){var v=basis==="actual"?ac:pl;return kk.nom>0?pc(v/kk.nom*100,1):"–"};
+    var label=g===undefined?"":('<b>Target: '+(g===""?"(no target)":esc(g))+"</b> · ");
+    var T='<caption>'+label+'Nominal hours in the duration: <b>'+f0(kk.nom)+' hrs</b> <span class="hint">· Occupancy = '+(basis==="actual"?"Actual":"Plan")+" MH ÷ nominal hours</span></caption>"
+      +'<thead><tr><th>#</th><th>Work Scope</th><th>Plan MH</th><th>Actual MH</th><th>Remaining MH</th><th>Used</th><th>Occupancy<br>(Nominal)</th><th>Efficiency<br>&amp; Quality (%)</th><th>Status</th><th>Tracking</th><th></th></tr></thead><tbody>',plan=0,act=0;
+    kk.rows.forEach(function(r,i){
+      var a=kk.act[i],pl=num(r.plan),f=tmsFlag(pl,a,warn);plan+=pl;act+=a;
+      T+='<tr><td>'+(i+1)+'</td><td class="l in"><input type="text" class="nm" data-tf="n" data-ti="'+i+'" data-tk="'+ea+'" value="'+esc(r.n)+'" aria-label="Work scope"></td>'
+       +'<td class="in"><input type="number" step="0.5" min="0" data-tf="plan" data-ti="'+i+'" data-tk="'+ea+'" value="'+(pl||"")+'" placeholder="0" aria-label="Plan MH"></td>'
+       +"<td>"+f0(a)+'</td><td class="'+(pl-a<0?"neg":"")+'">'+f0(pl-a)+"</td><td>"+(pl?pc(a/pl*100,0):"–")+"</td><td>"+occ(pl,a)+"</td>"
+       +'<td class="in"><input type="number" step="1" min="0" data-tf="eff" data-ti="'+i+'" data-tk="'+ea+'" value="'+(r.eff===undefined?100:r.eff)+'" aria-label="Efficiency and quality"></td>'
+       +'<td class="in"><select data-tf="st" data-ti="'+i+'" data-tk="'+ea+'" aria-label="Status">'+stOpts(r.st)+"</select></td>"
+       +'<td class="'+f[0]+'">'+f[1]+'</td><td><button class="del" data-tdel="'+i+'" data-tk="'+ea+'" title="Remove this work scope" aria-label="Remove row">✕</button></td></tr>'});
+    if(kk.other>0){act+=kk.other;
+      T+='<tr class="np"><td>–</td><td class="l">Other work not listed above <span class="hint">('+esc(kk.otherNames.join(", "))+")</span></td><td>–</td><td>"+f0(kk.other)+"</td><td></td><td></td><td>"+(basis==="actual"?occ(0,kk.other):"–")+"</td><td></td><td></td><td></td><td></td></tr>"}
+    var tf=tmsFlag(plan,act,warn);
+    T+='</tbody><tfoot><tr><td></td><td style="text-align:right">Total</td><td>'+f0(plan)+"</td><td>"+f0(act)+'</td><td class="'+(plan-act<0?"neg":"")+'">'+f0(plan-act)+"</td><td>"+(plan?pc(act/plan*100,0):"–")+"</td><td>"+occ(plan,act)+'</td><td></td><td></td><td class="'+tf[0]+'">'+tf[1]+"</td><td></td></tr></tfoot>";
+    all+='<div class="wrap"><table class="rep">'+T+"</table></div>"});
+  $("tmstab").innerHTML=all;
   if(key){var el=$("v-tms").querySelector(key);if(el){el.focus();if(el.select&&el.type!=="date")try{el.select()}catch(e){}}}}
 $("tmsproj").onchange=function(){S.tmsProj=this.value;save();renderTms()};
 $("tmswarn").onchange=function(){S.tmsWarn=Math.min(100,Math.max(0,num(this.value)));save();renderTms()};
@@ -1272,39 +1296,44 @@ $("v-tms").addEventListener("change",function(e){
   var p=tmsCur();if(!p)return;
   var c=tmsEdit(p),i=t.dataset.ti;
   if(i!==undefined&&i!==""){
-    var r=c.rows[+i];if(!r)return;
+    var r=tmsEditRows(p,t.dataset.tk||"")[+i];if(!r)return;
     if(f==="n")r.n=t.value.trim();else if(f==="plan")r.plan=num(t.value);else if(f==="eff")r.eff=t.value===""?"":num(t.value);else if(f==="st")r.st=t.value}
   else c[f]=t.value;
   save();setTimeout(renderTms,0)});
 $("v-tms").addEventListener("click",function(e){
   var x=e.target.closest("[data-tdel]");
-  if(x){var p=tmsCur(),c=tmsEdit(p),r=c.rows[+x.dataset.tdel];
-    if(r&&confirm('Remove "'+r.n+'" from this project?')){c.rows.splice(+x.dataset.tdel,1);save();renderTms()}return}
+  if(x){var p=tmsCur(),rows=tmsEditRows(p,x.dataset.tk||""),r=rows[+x.dataset.tdel];
+    if(r&&confirm('Remove "'+r.n+'" from this table?')){rows.splice(+x.dataset.tdel,1);save();renderTms()}return}
   var pk=e.target.closest("[data-pick]");
   if(pk){S.tmsProj=pk.dataset.pick;save();renderTms()}});
 $("tmsadd").onclick=function(){
   var p=tmsCur(),v=$("tmsnew").value.trim();
   if(!p)return say("Add a project first (Lists tab).");
   if(!v)return say("Type a work scope name first.");
-  tmsEdit(p).rows.push({n:v,plan:0,eff:100,st:"On-going"});$("tmsnew").value="";save();renderTms();say("")};
+  tmsGroups(p).forEach(function(g){tmsEditRows(p,g||"").push({n:v,plan:0,eff:100,st:"On-going"})});$("tmsnew").value="";save();renderTms();say("")};
 $("tmsnew").addEventListener("keydown",function(e){if(e.key==="Enter")$("tmsadd").click()});
 $("tmsreset").onclick=function(){
   var p=tmsCur();if(!p)return;
   if(!confirm("Replace this project's work scope list with the default template? Its Plan MH values will be cleared."))return;
-  tmsEdit(p).rows=tmsRows();save();renderTms()};
+  var c=tmsEdit(p);tmsGroups(p).forEach(function(g){if(!g)c.rows=tmsRows();else{c.tg=c.tg||{};c.tg[g]={rows:tmsRows()}}});save();renderTms()};
 $("tmsprint").onclick=function(){window.print()};
 $("tmsx").onclick=function(){
   var p=tmsCur();if(!p)return say("Add a project first (Lists tab).");
-  var k=tmsCalc(p),c=k.c,d=tmsDefs(p),warn=tmsWarn(),basis=S.tmsOcc||"plan",plan=0,act=0;
-  var occ=function(pl,ac){var v=basis==="actual"?ac:pl;return k.nom>0?r2(v/k.nom*100):null};
-  var out=[["Project No.",c.no===undefined?d.no:c.no,"Role in the project",c.role||""],["Project Name",c.name===undefined?d.name:c.name,"Duration",(k.df||"")+" – "+(k.dt||"")],["Nominal hours in duration",r2(k.nom)],[],
-    ["#","Work Scope","Plan MH","Actual MH","Remaining MH","Used %","Occupancy (Nominal) %","Efficiency & Quality %","Status","Tracking"]];
-  c.rows.forEach(function(r,i){var a=k.act[i],pl=num(r.plan),f=tmsFlag(pl,a,warn);plan+=pl;act+=a;
-    out.push([i+1,r.n,pl,r2(a),r2(pl-a),pl?r2(a/pl*100):null,occ(pl,a),r.eff===""||r.eff===undefined?100:r.eff,r.st||"",f[1]])});
-  if(k.other>0){act+=k.other;out.push(["","Other work not listed above ("+k.otherNames.join(", ")+")",null,r2(k.other),null,null,basis==="actual"?occ(0,k.other):null,null,"",""])}
-  out.push(["","Total",plan,r2(act),r2(plan-act),plan?r2(act/plan*100):null,occ(plan,act),null,"",tmsFlag(plan,act,warn)[1]]);
-  var ws=XLSX.utils.aoa_to_sheet(out);ws["!cols"]=[{wch:6},{wch:44},{wch:10},{wch:10},{wch:13},{wch:9},{wch:20},{wch:20},{wch:12},{wch:12}];
-  var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"TMS");
+  var kAll=tmsCalc(p),c=kAll.c,d=tmsDefs(p),warn=tmsWarn(),basis=S.tmsOcc||"plan",wb=XLSX.utils.book_new(),used={};
+  tmsGroups(p).forEach(function(g){
+    var k=g===undefined?kAll:tmsCalc(p,g),plan=0,act=0;
+    var occ=function(pl,ac){var v=basis==="actual"?ac:pl;return k.nom>0?r2(v/k.nom*100):null};
+    var out=[["Project No.",c.no===undefined?d.no:c.no,"Role in the project",c.role||""],["Project Name",c.name===undefined?d.name:c.name,"Duration",(k.df||"")+" – "+(k.dt||"")]];
+    if(g!==undefined)out.push(["Target",g===""?"(no target)":g]);
+    out.push(["Nominal hours in duration",r2(k.nom)],[],["#","Work Scope","Plan MH","Actual MH","Remaining MH","Used %","Occupancy (Nominal) %","Efficiency & Quality %","Status","Tracking"]);
+    k.rows.forEach(function(r,i){var a=k.act[i],pl=num(r.plan),f=tmsFlag(pl,a,warn);plan+=pl;act+=a;
+      out.push([i+1,r.n,pl,r2(a),r2(pl-a),pl?r2(a/pl*100):null,occ(pl,a),r.eff===""||r.eff===undefined?100:r.eff,r.st||"",f[1]])});
+    if(k.other>0){act+=k.other;out.push(["","Other work not listed above ("+k.otherNames.join(", ")+")",null,r2(k.other),null,null,basis==="actual"?occ(0,k.other):null,null,"",""])}
+    out.push(["","Total",plan,r2(act),r2(plan-act),plan?r2(act/plan*100):null,occ(plan,act),null,"",tmsFlag(plan,act,warn)[1]]);
+    var ws=XLSX.utils.aoa_to_sheet(out);ws["!cols"]=[{wch:6},{wch:44},{wch:10},{wch:10},{wch:13},{wch:9},{wch:20},{wch:20},{wch:12},{wch:12}];
+    var nm=(g===undefined?"TMS":(g||"No target")).replace(/[:\\\/?*\[\]]+/g,"_").slice(0,31)||"TMS",n=nm,i=2;
+    while(used[n.toLowerCase()])n=nm.slice(0,28)+" "+(i++);used[n.toLowerCase()]=1;
+    XLSX.utils.book_append_sheet(wb,ws,n)});
   saveXlsx(wb,"TMS-"+p.replace(/[\\\/:*?"<>|]+/g,"_")+".xlsx")};
 
 // ---------- Team: submit + combine ----------
@@ -1577,6 +1606,128 @@ function applyColW(){var g=$("grid"),w=S.colW||[];for(var i=0;i<5;i++)g.style.se
   var end=function(){if(!cur)return;cur.h.classList.remove("on");cur=null;save()};
   g.addEventListener("pointerup",end);g.addEventListener("pointercancel",end);
   g.addEventListener("dblclick",function(e){var h=e.target.closest(".rz");if(!h)return;var i=+h.dataset.rz-1;S.colW=S.colW||CW0.slice();S.colW[i]=CW0[i];applyColW();save()});
+})();
+
+// ---------- hover hints ----------
+var TIPS=[
+ ["#t-tracker","Enter estimated and logged hours per task and day."],
+ ["#t-sheet","Attendance sheet: start, closing and break times, working time, excess and OT per day."],
+ ["#t-weekly","Weekly report in the Job No. format, with TM Concerns (VL, SL, OB)."],
+ ["#t-tms","Man-hour summary per project: plan vs actual per work scope, to check if you are over or on track."],
+ ["#t-dash","Summaries by Midterm, Finals or any date range, per project and work scope."],
+ ["#t-team","Combine submitted files from your team: by person, by project and per-person dashboards."],
+ ["#t-lists","Edit the dropdown choices: projects, task names, descriptions, day types and targets."],
+ ["#t-backup","Back up, restore, or submit your data to the team folder."],
+ ["#pm","Cut-off period: from the 23rd of the previous month to the 22nd of the chosen month."],
+ ["#py","Year of the period."],
+ ["#wset","Choose Dispatch (TJAS) for Japan hours and holidays, or Normal work for Philippines hours and holidays."],
+ ["#wsf","First date the work setting applies to."],["#wst","Last date the work setting applies to."],
+ ["#wsgo","Apply the work setting to the dates From and To. Hours and holidays follow it."],
+ ["#optbtn","Show or hide the extra tracker options."],
+ ["#start","First date shown in the grid."],["#days","How many days the grid shows (up to 90)."],
+ ["#range","Show the grid from the start date for the number of days."],
+ ["#calbtn","Pick several days at once to set their regular hours or day type."],
+ ["#calwk","Select all Monday to Friday dates."],["#calwe","Select all Saturdays and Sundays."],["#calall","Select every date."],["#calclr","Deselect everything."],
+ ["#calnom","Regular (nominal) hours for the selected days."],["#calnomgo","Set those regular hours on the selected days."],["#calnomrs","Go back to the default hours on the selected days."],
+ ["#caldt","Day type to set on the selected days."],["#caldtgo","Set the day type on the selected days."],
+ ["#hideempty","Hide tasks that have no hours in the dates shown."],
+ ["#tipson","Show or hide these hover descriptions."],
+ ["#imp","Import an Excel file. Existing data is kept and merged. Raw logs with Logged Date and Logged Time columns are also accepted."],
+ ["#exp","Download the tracker as an Excel file."],
+ ["#clrbtn","Clear hours for a date range, or everything."],
+ ["#clrf","First date to clear."],["#clrt","Last date to clear."],["#clrlog","Clear logged hours."],["#clrest","Clear estimated hours."],
+ ["#clrtask","Also delete tasks that end up with no hours at all."],["#clrper","Use the dates of the period you are viewing."],
+ ["#clrgo","Clear the chosen hours in the date range. You will be asked to confirm."],["#clr","Remove every task and every hour."],
+ ["#dpd","Regular hours per day on dispatch (TJAS) dates."],["#dpn","Regular hours per day on normal work dates."],
+ ["#wsstat","Which dates in view are Dispatch and which are Normal."],
+ ["#dpcd","Date of an extra holiday, such as Eid'l Fitr or a company holiday."],["#dpcn","Name of the extra holiday."],
+ ["#dpcc","Which calendar the extra holiday applies to."],["#dpcadd","Add this extra holiday."],
+ ["#dpy","Year of the holiday lists shown below."],
+ ["#bt","Day type to set on many dates."],["#bf","First date of the range."],["#bto","Last date of the range."],
+ ["#bdows","Only the ticked weekdays in the range are changed."],["#bov","Replace day types that are already set."],
+ ["#bapply","Set the day type on the matching dates."],["#bclear","Remove the day type from the matching dates."],
+ ["#np","Project for the new task. Start with the 7-digit job code."],["#nt","Scope of work, such as Pipe Modeling."],
+ ["#nd","Revision, Checking or Creation, or the activity name."],["#ng","Target group, summarised on the Dashboard."],
+ ["#addb","Add a new task row to the grid."],["#golists","Add or remove dropdown choices."],
+ ["#grid .rz","Drag to change this column's width. Double-click to reset."],
+ ["#grid th.fc1","Project (7-digit job code and name)."],["#grid th.fc2","Task: the scope of work."],
+ ["#grid th.fc3","Description: Revision, Checking, Creation or the activity. Click a cell below to fill a date range."],
+ ["#grid th.fc4","Target group for this task."],
+ ["#grid td.rg","Click to pick a date range for this activity, handy for routine tasks."],
+ ["#grid select.tg","Target group. Totals per target appear on the Dashboard."],
+ ["#grid input[data-k=est]","Estimated hours planned for this task on this date."],
+ ["#grid input[data-k=log]","Logged (actual) hours worked on this task on this date."],
+ ["#grid select[data-dt]","Day type for this date (WFO, WFH, VL, SL, Holiday...). Holiday shows grey, VL and SL pink."],
+ ["#grid input[data-nom]","Regular hours for this date. Leave blank for the default. Hours above it count as OT."],
+ ["#grid .del","Delete this task."],
+ ["#grid td.tot","Total hours for this row."],
+ ["#grid thead th","Date column. Grey or dark columns are weekends or holidays."],
+ ["#tsname","Employee name shown on the timesheet."],["#tsfrom","First date on the timesheet."],["#tsto","Last date on the timesheet."],
+ ["#simp","Import an attendance sheet from Excel."],["#sx","Download the timesheet as an Excel file."],["#sprint","Print the timesheet."],
+ ["#sheet input[data-f=s]","Starting time."],["#sheet input[data-f=e]","Closing time."],
+ ["#sheet input[data-f=b]","Break time in hours. Defaults to 1."],
+ ["#sheet select[data-f=h]","Day type for this date. It also updates the Tracker."],
+ ["#sheet input[data-f=r]","Your own remark for this day."],
+ ["#sheet .rsum","Projects worked on this day. Click to see the activities."],
+ ["#sheet thead th:nth-child(5)","Closing time minus starting time minus break, rounded to 0.25 hr."],
+ ["#sheet thead th:nth-child(6)","Working time above the regular hours for that day."],
+ ["#sheet thead th:nth-child(7)","Overtime: same as the excess over regular hours."],
+ ["#sheet thead th:nth-child(8)","Day type and your remark, plus a summary of the projects worked."],
+ ["#wkdate","First day of the week shown."],["#wkprev","Go to the previous week."],["#wknext","Go to the next week."],
+ ["#wkx","Download the weekly report as an Excel file."],["#wkprint","Print the weekly report."],
+ ["#tmsproj","Project to summarise."],["#tmswarn","Show Near plan once Actual reaches this percent of Plan."],
+ ["#tmsocc","Whether Occupancy is worked out from Plan MH or Actual MH."],["#tmsx","Download this project's TMS as an Excel file."],
+ ["#tmsprint","Print the TMS summary."],["#tmsnew","Name of a work scope to add."],["#tmsadd","Add the work scope row."],
+ ["#tmsreset","Restore the standard work scope rows."],
+ ["#dyear","Year the Midterm (Apr 23 - Oct 22) and Finals (Oct 23 - Mar 22) seasons start in."],
+ ["#dmid","Show the Midterm summary."],["#dfin","Show the Finals summary."],["#dcus","Also show a summary for the date range."],
+ ["#dfrom","First date of the date range."],["#dto","Last date of the date range."],
+ ["#dapply","Load the dashboard with the options chosen."],
+ ["#hfrom","First date of the half-month table."],["#hto","Last date of the half-month table."],
+ ["#hreset","Use the period selected at the top."],
+ ["#thor","OT hours from which a cut-off turns orange (limit)."],["#thred","OT hours from which a cut-off turns red (warning)."],
+ ["#tqload","Choose submitted files from your team folder."],["#tqfolder","Choose the whole team folder."],
+ ["#tqclear","Remove the loaded files from this page."],["#tqfrom","Only count hours from this date."],["#tqto","Only count hours up to this date."],
+ ["#tqperson","Limit the tables and export to one person."],["#tqproj","Show the project summary for this project."],
+ ["#tqx","Download the combined team data as an Excel file."],
+ ["#tqper [data-tqp]","Open this person's dashboard."],["#tqpro [data-tqj]","Show man-hours per work scope and per person for this project."],
+ ["#tqdmid","Fill the dates with the Midterm season of the year."],["#tqdfin","Fill the dates with the Finals season of the year."],
+ ["#tqdapply","Load the dashboard for the dates chosen."],["#tqdclose","Close this dashboard."],
+ ["#bkfile","Download all your data as one file."],["#bkpass","Optional code that locks the backup code."],
+ ["#bkmake","Create a block of text you can paste on another PC."],["#bkcopy","Copy the backup code."],["#bkcodefile","Save the backup code as a text file."],
+ ["#subname","Your name, used for the file name."],["#subgo","Save one file with all your data to send to the team folder."],
+ ["#rfbtn","Restore from a backup file. This replaces what is on this PC."],["#rgo","Restore from the pasted code. This replaces what is on this PC."],
+ ["#rpass","The access code you set when making the backup code."],
+ ["#rgpop [data-rd]","Click a first day, then a last day, to select a range."],["#rgh","Hours to put on each selected day."],
+ ["#rgf","Fill logged or estimated time."],["#rgskip","Leave out weekends, holidays and leave days."],["#rgow","Replace days that already have hours."],
+ ["#rgapply","Fill the selected days with these hours."],["#rgdel","Remove this activity's hours on the selected days."]
+];
+(function(){
+  var box=document.createElement("div");box.id="tipbox";box.setAttribute("role","tooltip");document.body.appendChild(box);
+  var timer=0,cur=null;
+  function lookup(n){
+    for(var d=0;n&&n.nodeType===1&&d<7&&n!==document.body;d++,n=n.parentElement){
+      if(n.tagName==="LABEL"){var c=n.querySelector("input,select,textarea,button");if(c){var t=lookup1(c);if(t)return[c,t]}}
+      var x=lookup1(n);if(x)return[n,x]}
+    return null}
+  function lookup1(n){for(var i=0;i<TIPS.length;i++){try{if(n.matches(TIPS[i][0]))return TIPS[i][1]}catch(e){}}return""}
+  function hide(){clearTimeout(timer);timer=0;box.classList.remove("on");cur=null}
+  function show(el,txt){
+    box.textContent=txt;box.style.left="0px";box.style.top="0px";
+    var r=el.getBoundingClientRect(),w=box.offsetWidth,h=box.offsetHeight;
+    var x=Math.max(8,Math.min(r.left+r.width/2-w/2,window.innerWidth-w-8)),y=r.bottom+8;
+    if(y+h>window.innerHeight-8)y=Math.max(8,r.top-h-8);
+    box.style.left=x+"px";box.style.top=y+"px";box.classList.add("on")}
+  document.addEventListener("mouseover",function(e){
+    if(S.noTips)return;
+    var f=lookup(e.target);if(!f){if(cur){hide()}return}
+    if(f[0]===cur)return;
+    hide();cur=f[0];
+    if(f[0].hasAttribute("title"))f[0].removeAttribute("title");
+    timer=setTimeout(function(){if(cur)show(cur,f[1])},380)});
+  document.addEventListener("mouseout",function(e){if(cur&&!cur.contains(e.relatedTarget))hide()});
+  ["pointerdown","keydown","scroll","wheel"].forEach(function(ev){document.addEventListener(ev,hide,true)});
+  $("tipson").onchange=function(){S.noTips=!this.checked;save();hide()};
 })();
 function syncBar(){if(S.dates.length){$("start").value=S.dates[0];$("days").value=S.dates.length}}
 load();ensureLists();
