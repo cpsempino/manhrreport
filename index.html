@@ -184,10 +184,18 @@ td.c input{font-weight:500}
 td.lab{font-weight:600}
 #sheet caption,table.rep caption{font-weight:700}
 #msg{font-size:13px}
-.rsum{font-size:11.5px;color:var(--mute);text-align:left;padding:0 4px 2px;white-space:normal;line-height:1.3}
+.rsum{font-size:11.5px;color:var(--mute);text-align:left;padding:0 4px 2px;white-space:normal;line-height:1.35}
+.rsum summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:4px}.rsum summary::-webkit-details-marker{display:none}.rsum summary::before{content:"▸";font-size:10px}.rsum[open] summary::before{content:"▾"}
+.rsum>div{padding:3px 0 2px 14px}.rsum>div b{color:var(--ink);font-weight:600}
 #sheet td.rm{min-width:260px}
 
 .wsdet{margin:0 20px 8px}.wsdet summary{cursor:pointer;color:var(--mute);font-size:13px;padding:2px 0}.wsdet .lists{padding:10px 0}
+#wsrow{display:flex;flex-wrap:wrap;gap:8px;align-items:end}#wsrow[hidden]{display:none}
+#wsrow label{display:flex;flex-direction:column;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--mute);gap:2px}
+#wsrow input{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);min-height:34px}
+#opts{margin:0 20px 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:4px 0}
+#opts .bar{padding:8px 14px}#opts .wsdet{margin:0 14px 8px}
+#opts .bar label,#opts .bar input,#opts .bar select{background-clip:padding-box}
 /* ---- folder-style tabs ---- */
 .tabs{gap:2px;padding:12px 20px 0;border-bottom:1px solid var(--line);align-items:flex-end}
 .tabs button{text-transform:uppercase;letter-spacing:.07em;font-size:12px;font-weight:600;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;padding:9px 16px;margin-bottom:-1px;background:var(--task2);color:var(--mute)}
@@ -213,8 +221,10 @@ td.lab{font-weight:600}
   <button id="t-team">Team</button>
   <button id="t-backup">Backup</button>
 </nav>
-<div class="bar" id="pbar"><label>Month (period)<select id="pm" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"></select></label><label>Year<input type="number" id="py" style="width:90px"></label><span id="plabel" class="hint" style="padding-bottom:8px"></span></div>
+<div class="bar" id="pbar"><label>Month (period)<select id="pm" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"></select></label><label>Year<input type="number" id="py" style="width:90px"></label><span id="plabel" class="hint" style="padding-bottom:8px"></span><span class="sp"></span><span id="wsrow"><label>Work setting<select id="wset" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)"><option value="N">Normal work</option><option value="D">Dispatch (TJAS)</option></select></label><label>From<input type="date" id="wsf"></label><label>To<input type="date" id="wst"></label><button id="wsgo" class="primary">Apply</button><button id="optbtn" aria-expanded="false" aria-controls="opts">Options ▾</button></span></div>
 <section id="v-tracker">
+<div id="msg" role="status"></div>
+<div id="opts" hidden>
 <div class="bar">
   <label>Start date<input type="date" id="start"></label>
   <label>Days<input type="number" id="days" min="1" max="90" value="21" style="width:70px"></label>
@@ -236,12 +246,8 @@ td.lab{font-weight:600}
   <button id="exp">Export Excel</button>
   <button id="clr">Clear all</button>
 </div>
-<div id="msg" role="status"></div>
 
 <div class="bar" id="wsbar">
-  <label>Work setting<select id="wset" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)"><option value="N">Normal work</option><option value="D">Dispatch (TJAS)</option></select></label>
-  <label>From<input type="date" id="wsf"></label><label>To<input type="date" id="wst"></label>
-  <button id="wsgo" class="primary">Apply</button>
   <label>Dispatch hrs<input type="number" id="dpd" step="0.25" min="0" style="width:80px"></label>
   <label>Normal hrs<input type="number" id="dpn" step="0.25" min="0" style="width:80px"></label>
   <span class="hint" id="wsstat" style="padding-bottom:8px"></span>
@@ -272,6 +278,7 @@ td.lab{font-weight:600}
   </span>
   <label class="chk" style="padding-bottom:6px"><input type="checkbox" id="bov">Overwrite existing</label>
   <button id="bapply" class="primary">Apply</button><button id="bclear">Clear</button>
+</div>
 </div>
 <div class="wrap" id="gridwrap"><table id="grid"></table></div>
 
@@ -394,7 +401,7 @@ function fmt(n){return n?q4(n):""}
 
 var freshItems=[];
 function render(){
-  autoHol();
+  autoHol();optsUi();
   $("hideempty").checked=S.hideEmpty!==false;
   if(S.dates.length){var a=$("bf").value,b=$("bto").value,f0=S.dates[0],l0=S.dates[S.dates.length-1];
     if(!a||a<f0||a>l0)$("bf").value=f0;if(!b||b<f0||b>l0)$("bto").value=l0}fillSelects();renderLists();renderSheet();if(!$("calpop").hidden)renderCal();renderWeekly();renderHalves();renderDash();renderTms();renderDispatch();
@@ -619,7 +626,9 @@ $("lt").addEventListener("paste",function(e){
   rows.forEach(function(row,i){row.forEach(function(v,j){var c=c0+j;if(c>=LKEYS.length)return;cols[c][r0+i]=v.trim()})});
   commitCols(cols);
   say("Pasted "+rows.length+" row"+(rows.length===1?"":"s")+".")});
-function tab(n){if(n==="backup"&&$("subname")&&!$("subname").value)$("subname").value=S.tsName||"";["tracker","sheet","weekly","tms","dash","team","lists","backup"].forEach(function(k){$("v-"+k).hidden=k!==n;$("t-"+k).classList.toggle("on",k===n)});say("")}
+function optsUi(){var o=!!S.optOpen;$("opts").hidden=!o;$("optbtn").textContent=o?"Options ▴":"Options ▾";$("optbtn").setAttribute("aria-expanded",o)}
+$("optbtn").onclick=function(){S.optOpen=!S.optOpen;save();optsUi()};
+function tab(n){$("wsrow").hidden=!(n==="tracker"||n==="sheet");if(n==="backup"&&$("subname")&&!$("subname").value)$("subname").value=S.tsName||"";["tracker","sheet","weekly","tms","dash","team","lists","backup"].forEach(function(k){$("v-"+k).hidden=k!==n;$("t-"+k).classList.toggle("on",k===n)});say("")}
 ["tracker","sheet","weekly","tms","dash","team","lists","backup"].forEach(function(k){$("t-"+k).onclick=function(){tab(k)}});
 $("golists").onclick=function(){tab("lists")};
 $("sprint").onclick=function(){window.print()};
@@ -635,6 +644,7 @@ $("sx").onclick=function(){
   var ws=XLSX.utils.aoa_to_sheet(out);ws["!cols"]=[{wch:12},{wch:10},{wch:10},{wch:10},{wch:12},{wch:12},{wch:8},{wch:30}];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Timesheet");
   saveXlsx(wb,"timesheet-"+iso(new Date())+".xlsx")};
+$("sheet").addEventListener("toggle",function(e){var t=e.target;if(t.dataset&&t.dataset.ds){if(t.open)tsOpen[t.dataset.ds]=1;else delete tsOpen[t.dataset.ds]}},true);
 $("sheet").addEventListener("change",function(e){
   var t=e.target;if(!t.dataset.f)return;
   var o=S.ts[t.dataset.d]=S.ts[t.dataset.d]||{};o[t.dataset.f]=t.value;save();render()});
@@ -648,7 +658,9 @@ $("tsname").oninput=function(){S.tsName=this.value;save();renderSheet()};
 $("tsfrom").onchange=function(){S.tsFrom=this.value;save();renderSheet();say(tsDates().length?"":"The end date is before the start date.")};
 $("tsto").onchange=function(){S.tsTo=this.value;save();renderSheet();say(tsDates().length?"":"The end date is before the start date.")};
 function projName(p){return String(p||"").replace(/^\s*\d{7}\s*[-–]?\s*/,"").trim()||String(p||"").trim()}
-function daySummary(s){
+function daySummary(s){return daySummaryG(s).map(function(x){return x[0]}).join("; ")}
+var tsOpen={};
+function daySummaryG(s){
   var g=[],ix={};
   S.items.forEach(function(it){
     if(!(num(it.log[s])>0))return;
@@ -656,7 +668,7 @@ function daySummary(s){
     var w=t;if(d&&t.toLowerCase().indexOf(d.toLowerCase())<0)w=(t?t+" ":"")+d;
     if(ix[n]===undefined){ix[n]=g.length;g.push([n,[]])}
     if(w&&g[ix[n]][1].indexOf(w)<0)g[ix[n]][1].push(w)});
-  return g.map(function(x){return x[0]+" - "+x[1].join(", ")}).join("; ")}
+  return g}
 function renderSheet(){
   var dts=tsDates();
   setv("tsname",S.tsName||"");setv("tsfrom",dts[0]||"");setv("tsto",dts[dts.length-1]||"");
@@ -672,7 +684,7 @@ function renderSheet(){
      +"<td>"+(c.a!==null?inp(s,"b","number",c.br,' step="0.25" min="0" style="width:52px"')+" hr":"")+"</td>"
      +"<td>"+(c.w===null?"":c.w.toFixed(2)+" hrs")+"</td>"
      +"<td>"+(c.w===null?"":(c.e?c.e.toFixed(2):"-"))+"</td><td>"+(c.w===null?"":(c.e?c.e.toFixed(2):"-"))+"</td>"
-     +'<td class="rm"><div class="rmw"><select data-d="'+s+'" data-f="h" aria-label="Day type">'+hopts(t.h)+"</select>"+inp(s,"r","text",t.r)+"</div>"+(daySummary(s)?'<div class="rsum">'+esc(daySummary(s))+"</div>":"")+"</td></tr>"});
+     +'<td class="rm"><div class="rmw"><select data-d="'+s+'" data-f="h" aria-label="Day type">'+hopts(t.h)+"</select>"+inp(s,"r","text",t.r)+"</div>"+(daySummary(s)?'<details class="rsum" data-ds="'+s+'"'+(tsOpen[s]?" open":"")+"><summary>"+esc(daySummary(s).replace(/; /g," · "))+"</summary>"+daySummaryG(s).map(function(x){return"<div><b>"+esc(x[0])+"</b>"+x[1].map(function(w){return"<br>"+esc(w)}).join("")+"</div>"}).join("")+"</details>":"")+"</td></tr>"});
   $("sheet").innerHTML=h+'</tbody><tfoot><tr><td>TOTAL</td><td></td><td></td><td></td><td>'+tw.toFixed(2)+" hrs</td><td>"+te.toFixed(2)+"</td><td>"+te.toFixed(2)+"</td><td></td></tr></tfoot>";
 }
 $("grid").addEventListener("change",function(e){
