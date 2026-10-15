@@ -6,7 +6,7 @@
 <title>DISPATCH Man Hour</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+JP:wght@400;500;600&display=swap">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="var x=document.createElement('script');x.src='xlsx.full.min.js';document.head.appendChild(x)"></script>
 <style>
 :root{--bg:#f5f4f0;--panel:#fff;--ink:#1d2327;--mute:#69726f;--line:#e1ded6;--head:#1f5560;--est:#2b6cb0;--log:#2f8f5b;--wk:#e6e4de;--wk-ink:#8a8f8c;--task:#d6e4e1;--task2:#ebf2f0;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -186,11 +186,20 @@ td.lab{font-weight:600}
 #msg{font-size:13px}
 .rsum{font-size:11.5px;color:var(--mute);text-align:left;padding:0 4px 2px;white-space:normal;line-height:1.3}
 #sheet td.rm{min-width:260px}
+
+.wsdet{margin:0 20px 8px}.wsdet summary{cursor:pointer;color:var(--mute);font-size:13px;padding:2px 0}.wsdet .lists{padding:10px 0}
+/* ---- folder-style tabs ---- */
+.tabs{gap:2px;padding:12px 20px 0;border-bottom:1px solid var(--line);align-items:flex-end}
+.tabs button{text-transform:uppercase;letter-spacing:.07em;font-size:12px;font-weight:600;border:1px solid var(--line);border-bottom:0;border-radius:10px 10px 0 0;padding:9px 16px;margin-bottom:-1px;background:var(--task2);color:var(--mute)}
+.tabs button:hover{background:var(--panel);color:var(--ink)}
+.tabs button.on{background:var(--bg);color:var(--head);border-color:var(--line);border-top:3px solid var(--head);padding-top:7px;position:relative;z-index:1;font-weight:700}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tabs button.on{color:var(--ink)}}
+.dprow{display:flex;gap:6px;align-items:center;margin-bottom:6px}.dprow input{padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);min-height:32px}.dprow input[type=text]{flex:1;min-width:0}
 </style>
 </head>
 <body>
 <header>
-  <h1>Man-Hour Tracker</h1>
+  <h1>Man-hour tracker</h1>
   <p>Type hours straight into the grid, or import your Excel sheet. Data stays in this browser.</p>
 </header>
 
@@ -201,6 +210,7 @@ td.lab{font-weight:600}
   <button id="t-tms">TMS</button>
   <button id="t-dash">Dashboard</button>
   <button id="t-lists">Lists</button>
+  <button id="t-team">Team</button>
   <button id="t-backup">Backup</button>
 </nav>
 <div class="bar" id="pbar"><label>Month (period)<select id="pm" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"></select></label><label>Year<input type="number" id="py" style="width:90px"></label><span id="plabel" class="hint" style="padding-bottom:8px"></span></div>
@@ -228,6 +238,32 @@ td.lab{font-weight:600}
 </div>
 <div id="msg" role="status"></div>
 
+<div class="bar" id="wsbar">
+  <label>Work setting<select id="wset" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)"><option value="N">Normal work</option><option value="D">Dispatch (TJAS)</option></select></label>
+  <label>From<input type="date" id="wsf"></label><label>To<input type="date" id="wst"></label>
+  <button id="wsgo" class="primary">Apply</button>
+  <label>Dispatch hrs<input type="number" id="dpd" step="0.25" min="0" style="width:80px"></label>
+  <label>Normal hrs<input type="number" id="dpn" step="0.25" min="0" style="width:80px"></label>
+  <span class="hint" id="wsstat" style="padding-bottom:8px"></span>
+</div>
+<details id="dpg" class="wsdet">
+  <summary>Holiday calendars and extra holidays</summary>
+  <div class="lists" style="grid-template-columns:repeat(auto-fit,minmax(380px,1fr));align-items:start">
+    <div class="card">
+      <h2>How it works</h2>
+      <p class="hint">Dates marked Dispatch (TJAS) use the dispatch hours and Japan holidays. All other dates use the normal hours and Philippines holidays. Holidays are marked as “Holiday” automatically on the Tracker and Timesheet, only where no day type is set yet. If you change or clear a day type yourself, it is left alone. The Philippine list covers the regular holidays and the special non-working days that recur every year, plus the 2026 additions (Chinese New Year, All Souls’ Day).</p>
+      <h2 style="margin-top:12px">Extra holidays</h2>
+      <p class="hint">For days proclaimed each year, such as Eid’l Fitr and Eid’l Adha, or company holidays.</p>
+      <div id="dpcust"></div>
+      <div class="row" style="margin-top:8px"><input type="date" id="dpcd"><input type="text" id="dpcn" placeholder="Name"><select id="dpcc" style="padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="both">Both</option><option value="JP">Japan (dispatch)</option><option value="PH">Philippines (normal)</option></select><button id="dpcadd">Add</button></div>
+    </div>
+    <div class="card">
+      <div class="row" style="align-items:end"><label>Holiday list for year<input type="number" id="dpy" style="width:100px"></label></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px"><div><h2>Japan (dispatch)</h2><table class="mini" id="dpjp"></table></div><div><h2>Philippines (normal)</h2><table class="mini" id="dpph"></table></div></div>
+    </div>
+  </div>
+</details>
+
 <div class="bar" id="bulk">
   <label>Set day type for many dates<select id="bt" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"></select></label>
   <label>From<input type="date" id="bf"></label><label>To<input type="date" id="bto"></label>
@@ -250,7 +286,7 @@ td.lab{font-weight:600}
 </section>
 
 <section id="v-sheet" hidden>
-  <div class="bar"><label>Name<input type="text" id="tsname" placeholder="Employee name" style="width:180px"></label><label>From<input type="date" id="tsfrom"></label><label>To<input type="date" id="tsto"></label><label>Regular hours per day<input type="number" id="reg" step="0.25" min="0" style="width:90px"></label><span class="sp"></span><input type="file" id="sfile" accept=".xlsx,.xls,.xlsm,.csv" hidden><button id="simp" class="primary">Import timesheet</button><button id="sx">Export timesheet</button><button id="sprint">Print</button></div>
+  <div class="bar"><label>Name<input type="text" id="tsname" placeholder="Employee name" style="width:180px"></label><label>From<input type="date" id="tsfrom"></label><label>To<input type="date" id="tsto"></label><span class="sp"></span><input type="file" id="sfile" accept=".xlsx,.xls,.xlsm,.csv" hidden><button id="simp" class="primary">Import timesheet</button><button id="sx">Export timesheet</button><button id="sprint">Print</button></div>
   <div class="wrap"><table id="sheet"></table></div>
 </section>
 
@@ -285,6 +321,23 @@ td.lab{font-weight:600}
   <div class="wrap"><table id="halves" class="rep"></table></div>
 </section>
 
+<section id="v-team" hidden>
+  <div class="bar">
+    <input type="file" id="tqf" accept=".json,application/json" multiple hidden><input type="file" id="tqd" webkitdirectory multiple hidden>
+    <button id="tqload" class="primary">Load files…</button><button id="tqfolder">Load a folder…</button><button id="tqclear">Clear loaded</button>
+    <label>From<input type="date" id="tqfrom"></label><label>To<input type="date" id="tqto"></label>
+    <label>Person<select id="tqperson" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"></select></label>
+    <label>Project<select id="tqproj" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"></select></label>
+    <span class="sp"></span><button id="tqx">Export Excel</button>
+  </div>
+  <div class="hint" id="tqstat" style="padding:0 20px 8px">Load the submitted files from your team folder. They are read in this browser only and are not uploaded anywhere.</div>
+  <div class="lists" id="tqgrid" style="grid-template-columns:repeat(auto-fit,minmax(440px,1fr));align-items:start">
+    <div class="card"><h2>By person</h2><div class="wrap" style="margin:0"><table id="tqper" class="mini"></table></div></div>
+    <div class="card"><h2>By project</h2><div class="wrap" style="margin:0"><table id="tqpro" class="mini"></table></div></div>
+  </div>
+  <div class="hint" style="padding:0 20px 24px">Dates default to everything submitted; set From and To to look at one period. OT counts the hours above each person's own regular hours per day, across all projects. Click a name or project to filter. Totals are rounded to 0.25 hrs; the Excel export also has the full detail line by line.</div>
+</section>
+
 <section id="v-backup" hidden>
   <div class="lists">
     <div class="card">
@@ -296,6 +349,11 @@ td.lab{font-weight:600}
       <div class="row"><input type="text" id="bkpass" placeholder="Access code (optional)" autocomplete="off"><button id="bkmake">Create code</button></div>
       <textarea id="bkcode" rows="5" readonly placeholder="Your backup code appears here"></textarea>
       <div class="row" style="margin-top:8px"><button id="bkcopy">Copy code</button><button id="bkcodefile">Save code as .txt</button></div>
+    </div>
+    <div class="card">
+      <h2>Submit to the team folder</h2>
+      <p class="hint">Saves one file with all your data, named after you. Save it into the shared folder your manager gave you (OneDrive or network drive). Submit again any time; saving over the same file replaces the old one.</p>
+      <div class="row"><input type="text" id="subname" placeholder="Your name" autocomplete="name"><button id="subgo" class="primary">Submit my data</button></div>
     </div>
     <div class="card">
       <h2>Restore</h2>
@@ -336,9 +394,10 @@ function fmt(n){return n?q4(n):""}
 
 var freshItems=[];
 function render(){
+  autoHol();
   $("hideempty").checked=S.hideEmpty!==false;
   if(S.dates.length){var a=$("bf").value,b=$("bto").value,f0=S.dates[0],l0=S.dates[S.dates.length-1];
-    if(!a||a<f0||a>l0)$("bf").value=f0;if(!b||b<f0||b>l0)$("bto").value=l0}fillSelects();renderLists();renderSheet();if(!$("calpop").hidden)renderCal();renderWeekly();renderHalves();renderDash();renderTms();
+    if(!a||a<f0||a>l0)$("bf").value=f0;if(!b||b<f0||b>l0)$("bto").value=l0}fillSelects();renderLists();renderSheet();if(!$("calpop").hidden)renderCal();renderWeekly();renderHalves();renderDash();renderTms();renderDispatch();
   var g=$("grid"),h="<thead><tr><th class=\"fc fc1\">Project</th><th class=\"fc fc2\">Task</th><th class=\"fc fc3\">Description</th><th class=\"fc fc4\">Target</th><th class=\"fc fc5\"></th>";
   S.dates.forEach(function(s){var d=parseIso(s),w=d.getDay()%6===0;
     h+='<th class="'+(dayCls(s)||(w?"wk":""))+'"'+(dayCls(s)?' title="'+esc((S.ts[s]||{}).h||"")+'"':"")+'>'+(d.getMonth()+1)+"/"+d.getDate()+"<small>"+"SMTWTFS"[d.getDay()]+"</small></th>"});
@@ -517,7 +576,7 @@ $("exp").onclick=function(){
 };
 
 function ensureLists(){
-  var fresh=!S.lists;S.lists=S.lists||{};S.ts=S.ts||{};S.reg=S.reg||7.5;delete S.nomDow;
+  var fresh=!S.lists;S.lists=S.lists||{};S.ts=S.ts||{};if(S.regD===undefined)S.regD=S.reg||7.5;if(S.regN===undefined)S.regN=8;S.dispatch=S.dispatch||[];S.custH=S.custH||[];S.auto=S.auto||{};delete S.nomDow;
   ["projects","tasks","descs"].forEach(function(k){S.lists[k]=S.lists[k]||[]});
   if(fresh)S.lists.descs=["Checking","Revision"];
   var DT=["WFO","WFH","On Site","OB","VL","SL","Holiday"];
@@ -560,8 +619,8 @@ $("lt").addEventListener("paste",function(e){
   rows.forEach(function(row,i){row.forEach(function(v,j){var c=c0+j;if(c>=LKEYS.length)return;cols[c][r0+i]=v.trim()})});
   commitCols(cols);
   say("Pasted "+rows.length+" row"+(rows.length===1?"":"s")+".")});
-function tab(n){["tracker","sheet","weekly","tms","dash","lists","backup"].forEach(function(k){$("v-"+k).hidden=k!==n;$("t-"+k).classList.toggle("on",k===n)});say("")}
-["tracker","sheet","weekly","tms","dash","lists","backup"].forEach(function(k){$("t-"+k).onclick=function(){tab(k)}});
+function tab(n){if(n==="backup"&&$("subname")&&!$("subname").value)$("subname").value=S.tsName||"";["tracker","sheet","weekly","tms","dash","team","lists","backup"].forEach(function(k){$("v-"+k).hidden=k!==n;$("t-"+k).classList.toggle("on",k===n)});say("")}
+["tracker","sheet","weekly","tms","dash","team","lists","backup"].forEach(function(k){$("t-"+k).onclick=function(){tab(k)}});
 $("golists").onclick=function(){tab("lists")};
 $("sprint").onclick=function(){window.print()};
 function calc(s){
@@ -588,7 +647,6 @@ function setv(id,v){var e=$(id);if(document.activeElement!==e)e.value=v}
 $("tsname").oninput=function(){S.tsName=this.value;save();renderSheet()};
 $("tsfrom").onchange=function(){S.tsFrom=this.value;save();renderSheet();say(tsDates().length?"":"The end date is before the start date.")};
 $("tsto").onchange=function(){S.tsTo=this.value;save();renderSheet();say(tsDates().length?"":"The end date is before the start date.")};
-$("reg").onchange=function(){S.reg=num(this.value);save();renderSheet()};
 function projName(p){return String(p||"").replace(/^\s*\d{7}\s*[-–]?\s*/,"").trim()||String(p||"").trim()}
 function daySummary(s){
   var g=[],ix={};
@@ -601,7 +659,7 @@ function daySummary(s){
   return g.map(function(x){return x[0]+" - "+x[1].join(", ")}).join("; ")}
 function renderSheet(){
   var dts=tsDates();
-  setv("reg",S.reg);setv("tsname",S.tsName||"");setv("tsfrom",dts[0]||"");setv("tsto",dts[dts.length-1]||"");
+  setv("tsname",S.tsName||"");setv("tsfrom",dts[0]||"");setv("tsto",dts[dts.length-1]||"");
   var hopts=function(v){return'<option value=""></option>'+S.lists.holidays.map(function(x){return"<option"+(x===v?" selected":"")+">"+esc(x)+"</option>"}).join("")};
   var h='<caption>NAME: '+esc(S.tsName||"")+"&nbsp;&nbsp;&nbsp;&nbsp;PERIOD: "+(dts[0]||"")+" – "+(dts[dts.length-1]||"")+"</caption>"+'<thead><tr><th>DATE</th><th>STARTING<br>TIME</th><th>CLOSING<br>TIME</th><th>BREAK<br>TIME</th><th>WORKING<br>TIME</th><th>Excess<br>Over<br>Regular</th><th>OT</th><th>REMARK</th></tr></thead><tbody>';
   var tw=0,te=0,jp="日月火水木金土";
@@ -623,10 +681,11 @@ $("grid").addEventListener("change",function(e){
   o.h=t.value;
   save();render()});
 function dayCls(s){var h=((S.ts&&S.ts[s]&&S.ts[s].h)||"").trim();return/holiday/i.test(h)?"hol":/^(vl|sl)$/i.test(h)?"leave":""}
-function baseNom(s){var wd=parseIso(s).getDay();return(wd===0||wd===6)?0:num(S.reg)}
+function baseNom(s){var wd=parseIso(s).getDay();return(wd===0||wd===6)?0:num(isDispatch(s)?S.regD:S.regN)}
 function nomDef(s){
   var h=((S.ts[s]||{}).h||"").trim().toLowerCase();
   if(/holiday/.test(h)||h==="vl"||h==="sl")return 0;
+  if(!h&&calHol(s))return 0;
   return baseNom(s)}
 function nomOf(s){return S.nom&&S.nom[s]!==undefined?num(S.nom[s]):nomDef(s)}
 function dayLogged(s){var t=0;S.items.forEach(function(it){t+=num(it.log[s])});return t}
@@ -1106,6 +1165,197 @@ $("tmsx").onclick=function(){
   var ws=XLSX.utils.aoa_to_sheet(out);ws["!cols"]=[{wch:6},{wch:44},{wch:10},{wch:10},{wch:13},{wch:9},{wch:20},{wch:20},{wch:12},{wch:12}];
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"TMS");
   saveXlsx(wb,"TMS-"+p.replace(/[\\\/:*?"<>|]+/g,"_")+".xlsx")};
+
+// ---------- Team: submit + combine ----------
+$("subgo").onclick=async function(){
+  var nm=$("subname").value.trim();if(!nm)return say("Type your name first.");
+  S.tsName=nm;save();renderSheet();
+  var fn="ManHour_"+nm.replace(/[\\\/:*?"<>|\s]+/g,"_")+".json",txt=JSON.stringify({mht:"submit1",name:nm,savedAt:new Date().toISOString(),data:S});
+  if(window.showSaveFilePicker&&!window.claude){
+    try{var h=await showSaveFilePicker({suggestedName:fn,types:[{description:"Man-hour data",accept:{"application/json":[".json"]}}]});
+      var w=await h.createWritable();await w.write(txt);await w.close();return say("Submitted as "+h.name+".")}
+    catch(e){if(e&&e.name==="AbortError")return}}
+  saveFile(fn,txt);say("Saved "+fn+". Move or save it into the team folder.")};
+var TQ=[];
+function tqRead(files){
+  var list=Array.prototype.slice.call(files).filter(function(f){return/\.json$/i.test(f.name)});
+  if(!list.length)return say("No .json files found.");
+  Promise.all(list.map(function(f){return new Promise(function(ok){var r=new FileReader();r.onload=function(){ok({f:f,t:r.result})};r.onerror=function(){ok({f:f,t:null})};r.readAsText(f)})})).then(function(a){
+    var ok=0,bad=0,old=0;
+    a.forEach(function(x){
+      try{var o=JSON.parse(x.t),D=o&&o.mht==="submit1"?o.data:o;
+        if(!D||!Array.isArray(D.items)||!Array.isArray(D.dates))throw 0;
+        var nm=(o&&o.mht==="submit1"&&o.name)||D.tsName||x.f.name.replace(/^ManHour_/,"").replace(/\.json$/i,"").replace(/_/g," "),at=(o&&o.savedAt)||"",i=-1;
+        TQ.forEach(function(t,k){if(t.name===nm)i=k});
+        if(i>=0){if((TQ[i].savedAt||"")>at){old++;return}TQ.splice(i,1)}
+        TQ.push({name:nm,savedAt:at,data:D});ok++}catch(e){bad++}});
+    TQ.sort(function(a,b){return a.name.localeCompare(b.name)});
+    renderTeam();
+    say("Loaded "+ok+" file"+(ok===1?"":"s")+(old?", skipped "+old+" older copy":"")+(bad?", could not read "+bad:"")+".")})}
+$("tqload").onclick=function(){$("tqf").click()};$("tqfolder").onclick=function(){$("tqd").click()};
+$("tqf").onchange=function(e){tqRead(e.target.files);e.target.value=""};
+$("tqd").onchange=function(e){tqRead(e.target.files);e.target.value=""};
+$("tqclear").onclick=function(){TQ=[];renderTeam();say("Cleared.")};
+["tqfrom","tqto","tqperson","tqproj"].forEach(function(i){$(i).onchange=renderTeam});
+function tqNom(D,d){
+  if(D.nom&&D.nom[d]!==undefined)return num(D.nom[d]);
+  var wd=parseIso(d).getDay();if(wd===0||wd===6)return 0;
+  var h=(((D.ts||{})[d]||{}).h||"").trim().toLowerCase();
+  if(/holiday/.test(h)||h==="vl"||h==="sl")return 0;
+  var dp=false;(D.dispatch||[]).forEach(function(x){if(x.from&&x.to&&d>=x.from&&d<=x.to)dp=true});
+  return dp?(D.regD===undefined?(D.reg===undefined?7.5:num(D.reg)):num(D.regD)):(D.regN===undefined?8:num(D.regN))}
+function tqStats(){
+  var a=$("tqfrom").value,b=$("tqto").value,pp=$("tqperson").value,pj=$("tqproj").value;
+  var per=[],pro={},det=[],mx={},projs={};
+  TQ.forEach(function(P){
+    var D=P.data,r={name:P.name,at:P.savedAt,log:0,est:0,ot:0},day={};
+    (D.items||[]).forEach(function(it){
+      var pn=it.project||"(no project)";projs[pn]=1;
+      var ds={};Object.keys(it.log||{}).forEach(function(d){ds[d]=1});Object.keys(it.est||{}).forEach(function(d){ds[d]=1});
+      Object.keys(ds).forEach(function(d){
+        if(a&&d<a)return;if(b&&d>b)return;
+        var l=num((it.log||{})[d]),e=num((it.est||{})[d]);if(!l&&!e)return;
+        day[d]=(day[d]||0)+l;
+        if(pj&&pn!==pj)return;
+        r.log+=l;r.est+=e;
+        var X=pro[pn]=pro[pn]||{log:0,est:0,ppl:{}},show=!pp||pp===P.name;
+        if(show){X.log+=l;X.est+=e;if(l)X.ppl[P.name]=1;
+          mx[P.name]=mx[P.name]||{};mx[P.name][pn]=(mx[P.name][pn]||0)+l;
+          det.push([P.name,pn,it.task||"",it.desc||"",d,l||"",e||""])}})});
+    Object.keys(day).forEach(function(d){r.ot+=Math.max(0,day[d]-tqNom(D,d))});
+    per.push(r)});
+  return{per:per,pro:pro,det:det,mx:mx,projs:Object.keys(projs).sort()}}
+function renderTeam(){
+  var pp=$("tqperson").value,pj=$("tqproj").value,st=tqStats();
+  var names=TQ.map(function(t){return t.name});
+  $("tqperson").innerHTML='<option value="">Everyone</option>'+names.map(function(n){return"<option"+(n===pp?" selected":"")+">"+esc(n)+"</option>"}).join("");
+  $("tqproj").innerHTML='<option value="">All projects</option>'+st.projs.map(function(n){return"<option"+(n===pj?" selected":"")+">"+esc(n)+"</option>"}).join("");
+  $("tqstat").textContent=TQ.length?TQ.length+" people loaded. Latest submission: "+TQ.map(function(t){return t.savedAt}).sort().pop().replace("T"," ").slice(0,16):"Load the submitted files from your team folder. They are read in this browser only and are not uploaded anywhere.";
+  var h="<thead><tr><th>Person</th><th>Logged</th><th>Estimated</th><th>OT</th><th>Submitted</th></tr></thead><tbody>",tl=0,te=0,to=0;
+  st.per.forEach(function(r){tl+=r.log;te+=r.est;to+=r.ot;
+    h+='<tr><td><button class="lnk" data-tqp="'+esc(r.name)+'">'+(r.name===pp?"<b>"+esc(r.name)+"</b>":esc(r.name))+"</button></td><td>"+(fmt(r.log)||0)+"</td><td>"+(fmt(r.est)||0)+"</td><td>"+(fmt(r.ot)||0)+"</td><td>"+esc((r.at||"").replace("T"," ").slice(0,16))+"</td></tr>"});
+  if(!st.per.length)h+='<tr><td colspan="5" class="hint">Nothing loaded yet.</td></tr>';
+  $("tqper").innerHTML=h+'</tbody><tfoot><tr><th>Total</th><th>'+(fmt(tl)||0)+"</th><th>"+(fmt(te)||0)+"</th><th>"+(fmt(to)||0)+"</th><th></th></tr></tfoot>";
+  var pk=Object.keys(st.pro).sort(function(x,y){return st.pro[y].log-st.pro[x].log}),g="<thead><tr><th>Project</th><th>Logged</th><th>Estimated</th><th>People</th></tr></thead><tbody>",gl=0,ge=0;
+  pk.forEach(function(k){var X=st.pro[k];if(!X.log&&!X.est)return;gl+=X.log;ge+=X.est;
+    g+='<tr><td><button class="lnk" data-tqj="'+esc(k)+'">'+(k===pj?"<b>"+esc(k)+"</b>":esc(k))+"</button></td><td>"+(fmt(X.log)||0)+"</td><td>"+(fmt(X.est)||0)+"</td><td>"+Object.keys(X.ppl).length+"</td></tr>"});
+  if(!pk.length)g+='<tr><td colspan="4" class="hint">Nothing loaded yet.</td></tr>';
+  $("tqpro").innerHTML=g+'</tbody><tfoot><tr><th>Total</th><th>'+(fmt(gl)||0)+"</th><th>"+(fmt(ge)||0)+"</th><th></th></tr></tfoot>"}
+$("tqgrid").addEventListener("click",function(e){
+  var t=e.target.closest("button");if(!t)return;
+  if(t.dataset.tqp!==undefined){$("tqperson").value=$("tqperson").value===t.dataset.tqp?"":t.dataset.tqp;renderTeam()}
+  if(t.dataset.tqj!==undefined){$("tqproj").value=$("tqproj").value===t.dataset.tqj?"":t.dataset.tqj;renderTeam()}});
+$("tqx").onclick=function(){
+  if(!TQ.length)return say("Load the team files first.");
+  if(typeof XLSX==="undefined"||!XLSX.utils.aoa_to_sheet)return say("The Excel library did not load. Put xlsx.full.min.js next to this page and reload.");
+  var st=tqStats(),pj=Object.keys(st.pro).sort();
+  var A=[["Person","Logged","Estimated","OT","Submitted"]].concat(st.per.map(function(r){return[r.name,q4(r.log),q4(r.est),q4(r.ot),(r.at||"").replace("T"," ").slice(0,16)]}));
+  var B=[["Project","Logged","Estimated","People"]].concat(pj.map(function(k){var X=st.pro[k];return[k,q4(X.log),q4(X.est),Object.keys(X.ppl).length]}));
+  var M=[["Person"].concat(pj,["Total"])];
+  Object.keys(st.mx).sort().forEach(function(n){var t=0;M.push([n].concat(pj.map(function(k){var v=q4(st.mx[n][k]||0);t+=v;return v||""}),[t]))});
+  var wb=XLSX.utils.book_new();
+  [["By person",A],["By project",B],["Person x Project",M],["Detail",[["Person","Project","Scope of Work","Task","Date","Logged","Estimated"]].concat(st.det)]].forEach(function(x){XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(x[1]),x[0])});
+  saveXlsx(wb,"team-man-hours-"+iso(new Date())+".xlsx")};
+
+// ---------- Dispatch periods and holiday calendars ----------
+function isDispatch(d){var r=false;(S.dispatch||[]).forEach(function(x){if(x.from&&x.to&&d>=x.from&&d<=x.to)r=true});return r}
+function nthDow(y,m,dow,n){var f=new Date(y,m,1).getDay();return 1+((dow-f+7)%7)+(n-1)*7}
+function lastDow(y,m,dow){var l=new Date(y,m+1,0),d=l.getDate();return d-((l.getDay()-dow+7)%7)}
+var _jp={},_ph={};
+function jpHols(y){
+  if(_jp[y])return _jp[y];
+  var h={},add=function(m,d,n){h[iso(new Date(y,m-1,d))]=n};
+  add(1,1,"New Year's Day");add(1,nthDow(y,0,1,2),"Coming of Age Day");add(2,11,"National Foundation Day");if(y>=2020)add(2,23,"Emperor's Birthday");
+  add(3,Math.floor(20.8431+0.242194*(y-1980))-Math.floor((y-1980)/4),"Vernal Equinox Day");
+  add(4,29,"Showa Day");add(5,3,"Constitution Memorial Day");add(5,4,"Greenery Day");add(5,5,"Children's Day");
+  add(7,nthDow(y,6,1,3),"Marine Day");add(8,11,"Mountain Day");add(9,nthDow(y,8,1,3),"Respect for the Aged Day");
+  add(9,Math.floor(23.2488+0.242194*(y-1980))-Math.floor((y-1980)/4),"Autumnal Equinox Day");
+  add(10,nthDow(y,9,1,2),"Sports Day");add(11,3,"Culture Day");add(11,23,"Labor Thanksgiving Day");
+  Object.keys(h).sort().forEach(function(k){
+    if(parseIso(k).getDay()!==0)return;
+    var d=parseIso(k);do{d.setDate(d.getDate()+1)}while(h[iso(d)]);
+    h[iso(d)]="Substitute Holiday"});
+  for(var m=0;m<12;m++)for(var dd=1;dd<=31;dd++){
+    var x=new Date(y,m,dd);if(x.getMonth()!==m)break;
+    var k2=iso(x),a=new Date(y,m,dd-1),b=new Date(y,m,dd+1);
+    if(!h[k2]&&x.getDay()!==0&&h[iso(a)]&&h[iso(b)])h[k2]="Citizens' Holiday"}
+  return _jp[y]=h}
+function easter(y){var a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;return new Date(y,mo-1,da)}
+function phHols(y){
+  if(_ph[y])return _ph[y];
+  var h={},add=function(m,d,n){h[iso(new Date(y,m-1,d))]=n};
+  add(1,1,"New Year's Day");add(4,9,"Araw ng Kagitingan");add(5,1,"Labor Day");add(6,12,"Independence Day");
+  add(8,21,"Ninoy Aquino Day");add(8,lastDow(y,7,1),"National Heroes Day");add(11,1,"All Saints' Day");add(11,30,"Bonifacio Day");
+  add(12,8,"Immaculate Conception");add(12,25,"Christmas Day");add(12,30,"Rizal Day");
+  if(y>=2024)add(12,24,"Christmas Eve");if(y>=2023)add(12,31,"Last Day of the Year");
+  var e=easter(y),sh=function(n,t){var d=new Date(e);d.setDate(d.getDate()+n);h[iso(d)]=t};
+  sh(-3,"Maundy Thursday");sh(-2,"Good Friday");sh(-1,"Black Saturday");
+  if(y===2026){add(2,17,"Chinese New Year");add(11,2,"All Souls' Day")}
+  return _ph[y]=h}
+function calHol(d){
+  var y=+d.slice(0,4),jp=isDispatch(d),n=(jp?jpHols(y):phHols(y))[d]||"";
+  if(!n)(S.custH||[]).forEach(function(c){if(c.date===d&&(c.cal==="both"||c.cal===(jp?"JP":"PH")))n=c.name||"Holiday"});
+  return n}
+function holList(cal,y){
+  var h=cal==="JP"?jpHols(y):phHols(y),o=Object.keys(h).map(function(k){return[k,h[k]]});
+  (S.custH||[]).forEach(function(c){if(c.date&&+c.date.slice(0,4)===y&&(c.cal==="both"||c.cal===cal))o.push([c.date,c.name||"Holiday"])});
+  return o.sort(function(a,b){return a[0]<b[0]?-1:1})}
+function autoHol(){
+  S.auto=S.auto||{};var ch=false,seen={};
+  S.dates.concat(tsDates()).forEach(function(d){
+    if(seen[d])return;seen[d]=1;
+    var t=S.ts[d],a=S.auto[d],n=calHol(d);
+    if(a===0)return;
+    if(a){ // we set this one earlier
+      var h=t&&(t.h||"");
+      if(!t||h!==a.h){S.auto[d]=0;ch=true;return} // user changed or cleared the day type: hands off from now on
+      if(n!==a.n){
+        if(!n){t.h="";if(t.r===a.n)t.r="";delete S.auto[d]}else{if(t.r===a.n)t.r=n;a.n=n}
+        ch=true}
+      return}
+    if(n&&!(t&&t.h)){t=S.ts[d]=S.ts[d]||{};t.h="Holiday";if(!t.r)t.r=n;S.auto[d]={h:"Holiday",n:n};ch=true}});
+  if(ch)save()}
+function dpHead(c){return"<thead><tr><th>Date</th><th>Holiday</th></tr></thead>"}
+function addDays(d,n){var x=parseIso(d);x.setDate(x.getDate()+n);return iso(x)}
+function dpSet(a,b,on){
+  var out=[];
+  S.dispatch.forEach(function(r){
+    if(!r.from||!r.to||r.to<a||r.from>b){out.push(r);return}
+    if(r.from<a)out.push({label:r.label||"",from:r.from,to:addDays(a,-1)});
+    if(r.to>b)out.push({label:r.label||"",from:addDays(b,1),to:r.to})});
+  if(on)out.push({label:"TJAS",from:a,to:b});
+  out.sort(function(x,y){return x.from<y.from?-1:1});
+  var m=[];out.forEach(function(r){var l=m[m.length-1];if(l&&addDays(l.to,1)>=r.from){if(r.to>l.to)l.to=r.to}else m.push(r)});
+  S.dispatch=m}
+function wsStatus(){
+  var g=[],cur=null;
+  S.dates.forEach(function(d){var k=isDispatch(d)?"D":"N";if(cur&&cur.k===k)cur.e=d;else{cur={k:k,s:d,e:d};g.push(cur)}});
+  var f=function(d){return d.slice(5).replace("-","/")};
+  return g.map(function(x){return(x.k==="D"?"Dispatch":"Normal")+" "+f(x.s)+(x.s===x.e?"":"–"+f(x.e))}).join(" · ")}
+function renderDispatch(){
+  setv("dpd",S.regD);setv("dpn",S.regN);
+  if(S.dates.length){var f0=S.dates[0],l0=S.dates[S.dates.length-1],a=$("wsf").value,b=$("wst").value;
+    if(!a||a<f0||a>l0)$("wsf").value=f0;if(!b||b<f0||b>l0)$("wst").value=l0}
+  $("wsstat").textContent=wsStatus();
+  var y=+$("dpy").value||(S.dpYear||new Date().getFullYear());S.dpYear=y;setv("dpy",y);
+  $("dpcust").innerHTML=S.custH.map(function(c,i){return'<div class="dprow"><span style="flex:1">'+esc(c.date)+" · "+esc(c.name||"Holiday")+' <span class="hint">('+(c.cal==="JP"?"Japan":c.cal==="PH"?"Philippines":"both")+')</span></span><button data-chdel="'+i+'" aria-label="Remove holiday">✕</button></div>'}).join("");
+  var tb=function(cal){var l=holList(cal,y);return"<tbody>"+(l.length?l.map(function(r){var d=parseIso(r[0]);return"<tr><td>"+(d.getMonth()+1)+"/"+d.getDate()+" ("+"SMTWTFS"[d.getDay()]+")</td><td>"+esc(r[1])+"</td></tr>"}).join(""):'<tr><td colspan="2" class="hint">None</td></tr>')+"</tbody>"};
+  $("dpjp").innerHTML=dpHead()+tb("JP");$("dpph").innerHTML=dpHead()+tb("PH")}
+$("dpd").onchange=function(){S.regD=num(this.value);save();render()};
+$("dpn").onchange=function(){S.regN=num(this.value);save();render()};
+$("wsgo").onclick=function(){
+  var a=$("wsf").value,b=$("wst").value;
+  if(!a||!b||a>b)return say("Pick a From and To date (From must not be after To).");
+  dpSet(a,b,$("wset").value==="D");save();render();
+  say(($("wset").value==="D"?"Dispatch (TJAS)":"Normal work")+" set for "+a+" to "+b+". Hours and holidays follow that setting.")};
+$("dpy").onchange=function(){S.dpYear=+this.value||new Date().getFullYear();save();renderDispatch()};
+$("dpg").addEventListener("click",function(e){
+  var t=e.target.closest("button");if(!t)return;
+  if(t.dataset.dpdel!==undefined){S.dispatch.splice(+t.dataset.dpdel,1);save();render()}
+  if(t.dataset.chdel!==undefined){S.custH.splice(+t.dataset.chdel,1);save();render()}});
+$("dpcadd").onclick=function(){
+  var d=$("dpcd").value;if(!d)return say("Pick a date for the extra holiday.");
+  S.custH.push({date:d,name:$("dpcn").value.trim(),cal:$("dpcc").value});$("dpcd").value="";$("dpcn").value="";save();render()};
 function syncBar(){if(S.dates.length){$("start").value=S.dates[0];$("days").value=S.dates.length}}
 load();ensureLists();
 buildPeriod();
