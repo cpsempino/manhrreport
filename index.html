@@ -372,7 +372,9 @@ td.lab{font-weight:600}
     <div class="card"><h2>By person</h2><div class="wrap" style="margin:0"><table id="tqper" class="mini"></table></div></div>
     <div class="card"><h2>By project</h2><div class="wrap" style="margin:0"><table id="tqpro" class="mini"></table></div></div>
   </div>
-  <div class="hint" style="padding:0 20px 24px">Dates default to everything submitted; set From and To to look at one period. OT counts the hours above each person's own regular hours per day, across all projects. Click a name or project to filter. Totals are rounded to 0.25 hrs; the Excel export also has the full detail line by line.</div>
+  <div id="tqpd"></div>
+  <div id="tqdash"></div>
+  <div class="hint" style="padding:0 20px 24px">Dates default to everything submitted; set From and To to look at one period. OT counts the hours above each person's own regular hours per day, across all projects. Click a person to open their dashboard (with its own date range, Midterm and Finals buttons and Apply). Click a project to see its man-hours per work scope and per person. Totals are rounded to 0.25 hrs; the Excel export also has the full detail line by line.</div>
 </section>
 
 <section id="v-backup" hidden>
@@ -1372,18 +1374,83 @@ function renderTeam(){
   $("tqstat").textContent=TQ.length?TQ.length+" people loaded. Latest submission: "+TQ.map(function(t){return t.savedAt}).sort().pop().replace("T"," ").slice(0,16):"Load the submitted files from your team folder. They are read in this browser only and are not uploaded anywhere.";
   var h="<thead><tr><th>Person</th><th>Logged</th><th>Estimated</th><th>OT</th><th>Submitted</th></tr></thead><tbody>",tl=0,te=0,to=0;
   st.per.forEach(function(r){tl+=r.log;te+=r.est;to+=r.ot;
-    h+='<tr><td><button class="lnk" data-tqp="'+esc(r.name)+'">'+(r.name===pp?"<b>"+esc(r.name)+"</b>":esc(r.name))+"</button></td><td>"+(fmt(r.log)||0)+"</td><td>"+(fmt(r.est)||0)+"</td><td>"+(fmt(r.ot)||0)+"</td><td>"+esc((r.at||"").replace("T"," ").slice(0,16))+"</td></tr>"});
+    h+='<tr><td><button class="lnk" data-tqp="'+esc(r.name)+'" title="Open dashboard">'+(r.name===TQD.name?"<b>"+esc(r.name)+"</b>":esc(r.name))+"</button></td><td>"+(fmt(r.log)||0)+"</td><td>"+(fmt(r.est)||0)+"</td><td>"+(fmt(r.ot)||0)+"</td><td>"+esc((r.at||"").replace("T"," ").slice(0,16))+"</td></tr>"});
   if(!st.per.length)h+='<tr><td colspan="5" class="hint">Nothing loaded yet.</td></tr>';
   $("tqper").innerHTML=h+'</tbody><tfoot><tr><th>Total</th><th>'+(fmt(tl)||0)+"</th><th>"+(fmt(te)||0)+"</th><th>"+(fmt(to)||0)+"</th><th></th></tr></tfoot>";
   var pk=Object.keys(st.pro).sort(function(x,y){return st.pro[y].log-st.pro[x].log}),g="<thead><tr><th>Project</th><th>Logged</th><th>Estimated</th><th>People</th></tr></thead><tbody>",gl=0,ge=0;
   pk.forEach(function(k){var X=st.pro[k];if(!X.log&&!X.est)return;gl+=X.log;ge+=X.est;
     g+='<tr><td><button class="lnk" data-tqj="'+esc(k)+'">'+(k===pj?"<b>"+esc(k)+"</b>":esc(k))+"</button></td><td>"+(fmt(X.log)||0)+"</td><td>"+(fmt(X.est)||0)+"</td><td>"+Object.keys(X.ppl).length+"</td></tr>"});
   if(!pk.length)g+='<tr><td colspan="4" class="hint">Nothing loaded yet.</td></tr>';
-  $("tqpro").innerHTML=g+'</tbody><tfoot><tr><th>Total</th><th>'+(fmt(gl)||0)+"</th><th>"+(fmt(ge)||0)+"</th><th></th></tr></tfoot>"}
-$("tqgrid").addEventListener("click",function(e){
+  $("tqpro").innerHTML=g+'</tbody><tfoot><tr><th>Total</th><th>'+(fmt(gl)||0)+"</th><th>"+(fmt(ge)||0)+"</th><th></th></tr></tfoot>";tqRenderProj();tqRenderDash()}
+var TQD={name:"",from:"",to:""};
+function tqTypeKey(ds){return/^rev/i.test(ds)?"a":/^che/i.test(ds)?"c":/^(cre|new)/i.test(ds)?"d":"o"}
+function tqPerson(n){var r=null;TQ.forEach(function(t){if(t.name===n)r=t});return r}
+function tqAsS(P,fn){
+  var D=P.data,keep=S;
+  S=Object.assign({},D,{items:D.items||[],ts:D.ts||{},nom:D.nom||{},dispatch:D.dispatch||[],custH:D.custH||[],auto:{},lists:D.lists||{holidays:[]},
+    regD:D.regD!==undefined?D.regD:(D.reg!==undefined?D.reg:7.5),regN:D.regN!==undefined?D.regN:8});
+  try{return fn()}finally{S=keep}}
+function tqBounds(P){
+  var lo="",hi="";(P.data.items||[]).forEach(function(it){Object.keys(it.log||{}).forEach(function(d){if(!lo||d<lo)lo=d;if(!hi||d>hi)hi=d})});
+  return[lo,hi]}
+function tqRenderDash(){
+  var box=$("tqdash"),P=TQD.name&&tqPerson(TQD.name);
+  if(!P){box.innerHTML="";return}
+  var bd=tqBounds(P),a=TQD.from||$("tqfrom").value||bd[0]||"",b=TQD.to||$("tqto").value||bd[1]||"";
+  var y=TQD.y||(a?+a.slice(0,4):new Date().getFullYear());
+  var card=(a&&b&&a<=b)?tqAsS(P,function(){return dashPart(esc(P.name),a,b)}):'<div class="card"><p class="hint">Pick a valid From and To date, then press Apply.</p></div>';
+  box.innerHTML='<div class="bar" id="tqdbar" style="padding-top:14px"><strong style="padding-bottom:6px">Dashboard · '+esc(P.name)+'</strong><span class="sp"></span>'
+    +'<label>Season year<input type="number" id="tqdy" value="'+y+'" style="width:90px"></label>'
+    +'<button id="tqdmid" type="button">Midterm</button><button id="tqdfin" type="button">Finals</button>'
+    +'<label>From<input type="date" id="tqdfrom" value="'+esc(a)+'"></label><label>To<input type="date" id="tqdto" value="'+esc(b)+'"></label>'
+    +'<button id="tqdapply" type="button" class="primary">Apply</button><button id="tqdclose" type="button">Close</button></div>'
+    +'<div class="lists single" style="grid-template-columns:1fr;padding-top:0">'+card+"</div>"}
+function tqRenderProj(){
+  var box=$("tqpd"),pj=$("tqproj").value;
+  if(!pj){box.innerHTML="";return}
+  var a=$("tqfrom").value,b=$("tqto").value,sc={},pp={},tl=0,te=0,people={};
+  TQ.forEach(function(P){(P.data.items||[]).forEach(function(it){
+    if((it.project||"(no project)")!==pj)return;
+    var ds={};Object.keys(it.log||{}).forEach(function(d){ds[d]=1});Object.keys(it.est||{}).forEach(function(d){ds[d]=1});
+    var l=0,e=0;Object.keys(ds).forEach(function(d){if(a&&d<a)return;if(b&&d>b)return;l+=num((it.log||{})[d]);e+=num((it.est||{})[d])});
+    if(!l&&!e)return;
+    var k=it.task||"(no scope)",ty=tqTypeKey(String(it.desc||"")),X=sc[k]=sc[k]||{l:0,e:0,a:0,c:0,d:0,o:0,ea:0,ec:0,ed:0,eo:0,p:{}};
+    X.l+=l;X.e+=e;X[ty]+=l;X["e"+ty]+=e;X.p[P.name]=(X.p[P.name]||0)+l;
+    var Q=pp[P.name]=pp[P.name]||{l:0,e:0};Q.l+=l;Q.e+=e;tl+=l;te+=e;people[P.name]=1})});
+  var sk=Object.keys(sc).sort(function(x,y){return sc[y].l-sc[x].l}),pk=Object.keys(pp).sort(function(x,y){return pp[y].l-pp[x].l});
+  var sgn=function(v){v=Math.round(v*100)/100;return(v>0?"+":"")+v};
+  var h='<div class="bar" style="padding-top:14px"><strong style="padding-bottom:6px">Project summary · '+esc(pj)+'</strong><span class="hint" style="padding-bottom:6px">'+esc(a||"start")+" – "+esc(b||"end")+" · "+(fmt(tl)||0)+" hrs logged · "+pk.length+' people</span></div>';
+  if(!sk.length)return box.innerHTML=h+'<div class="lists"><div class="card"><p class="hint">No hours logged for this project in this range.</p></div></div>';
+  var smax=sc[sk[0]].l||1,pmax=pp[pk[0]].l||1,TY=[["a","Revision"],["c","Checking"],["d","Creation"],["o","Other"]];
+  var t1='<table class="mini"><tr><th>Work scope</th><th>Logged</th><th>Estimated</th><th>Diff</th></tr>';
+  sk.forEach(function(k){var X=sc[k],c=scopeColor(k);
+    t1+='<tr><td><i class="sw" style="background:'+c+'"></i><b>'+esc(k)+"</b></td><td><b>"+(fmt(X.l)||0)+'</b><div class="mb"><i style="width:'+Math.round(X.l/smax*100)+"%;background:"+c+'"></i></div></td><td>'+(fmt(X.e)||0)+"</td><td>"+sgn(X.l-X.e)+"</td></tr>";
+    TY.forEach(function(t){var lv=X[t[0]],ev=X["e"+t[0]];if(!lv&&!ev)return;t1+='<tr class="sub"><td style="padding-left:30px">– '+t[1]+"</td><td>"+(fmt(lv)||0)+"</td><td>"+(fmt(ev)||0)+"</td><td>"+sgn(lv-ev)+"</td></tr>"})});
+  t1+="<tr><th>Total</th><th>"+(fmt(tl)||0)+"</th><th>"+(fmt(te)||0)+"</th><th>"+sgn(tl-te)+"</th></tr></table>";
+  var t2='<table class="mini"><tr><th>Person</th><th>Logged</th><th>Estimated</th><th>Share</th></tr>';
+  pk.forEach(function(n){var Q=pp[n];
+    t2+='<tr><td><button class="lnk" data-tqp="'+esc(n)+'" title="Open this person\'s dashboard">'+esc(n)+"</button></td><td><b>"+(fmt(Q.l)||0)+'</b><div class="mb"><i style="width:'+Math.round(Q.l/pmax*100)+'%;background:var(--head)"></i></div></td><td>'+(fmt(Q.e)||0)+"</td><td>"+(tl?Math.round(Q.l/tl*100):0)+"%</td></tr>"});
+  t2+="<tr><th>Total</th><th>"+(fmt(tl)||0)+"</th><th>"+(fmt(te)||0)+"</th><th>100%</th></tr></table>";
+  var t3='<div class="wrap" style="margin:0"><table class="mini"><tr><th>Work scope</th>'+pk.map(function(n){return"<th>"+esc(n)+"</th>"}).join("")+"<th>Total</th></tr>";
+  sk.forEach(function(k){t3+="<tr><td><b>"+esc(k)+"</b></td>"+pk.map(function(n){return"<td>"+(fmt(sc[k].p[n]||0)||"")+"</td>"}).join("")+"<td><b>"+(fmt(sc[k].l)||0)+"</b></td></tr>"});
+  t3+="<tr><th>Total</th>"+pk.map(function(n){return"<th>"+(fmt(pp[n].l)||0)+"</th>"}).join("")+"<th>"+(fmt(tl)||0)+"</th></tr></table></div>";
+  box.innerHTML=h+'<div class="lists" style="grid-template-columns:repeat(auto-fit,minmax(420px,1fr));align-items:start;padding-top:0"><div class="card"><h2>Man-hours per work scope</h2>'+t1+'</div><div class="card"><h2>Man-hours per person</h2>'+t2+'</div><div class="card" style="grid-column:1/-1"><h2>Work scope × person</h2>'+t3+"</div></div>"}
+$("v-team").addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
-  if(t.dataset.tqp!==undefined){$("tqperson").value=$("tqperson").value===t.dataset.tqp?"":t.dataset.tqp;renderTeam()}
-  if(t.dataset.tqj!==undefined){$("tqproj").value=$("tqproj").value===t.dataset.tqj?"":t.dataset.tqj;renderTeam()}});
+  if(t.dataset.tqp!==undefined){
+    if(TQD.name===t.dataset.tqp&&t.closest("#tqper")){TQD={name:"",from:"",to:""}}
+    else TQD={name:t.dataset.tqp,from:"",to:""};
+    renderTeam();if(TQD.name)$("tqdash").scrollIntoView({behavior:"smooth",block:"start"});return}
+  if(t.dataset.tqj!==undefined){$("tqproj").value=$("tqproj").value===t.dataset.tqj?"":t.dataset.tqj;renderTeam();return}
+  if(t.id==="tqdclose"){TQD={name:"",from:"",to:""};renderTeam();return}
+  if(t.id==="tqdmid"||t.id==="tqdfin"){
+    var y=parseInt($("tqdy").value,10);if(!(y>1999&&y<2100))return say("Enter a season year such as 2026.");
+    if(t.id==="tqdmid"){$("tqdfrom").value=y+"-04-23";$("tqdto").value=y+"-10-22"}else{$("tqdfrom").value=y+"-10-23";$("tqdto").value=(y+1)+"-03-22"}
+    return}
+  if(t.id==="tqdapply"){
+    var a=$("tqdfrom").value,b=$("tqdto").value;
+    if(!a||!b||a>b)return say("Pick a From and To date (From must not be after To).");
+    TQD.from=a;TQD.to=b;TQD.y=parseInt($("tqdy").value,10)||null;tqRenderDash();say("")}});
 $("tqx").onclick=function(){
   if(!TQ.length)return say("Load the team files first.");
   if(typeof XLSX==="undefined"||!XLSX.utils.aoa_to_sheet)return say("The Excel library did not load. Put xlsx.full.min.js next to this page and reload.");
