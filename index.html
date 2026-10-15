@@ -70,11 +70,15 @@ tfoot td{background:var(--task2);font-weight:600;padding:5px 6px}
 #grid{border-collapse:separate;border-spacing:0;border-top:1px solid var(--line);border-left:1px solid var(--line)}
 #grid th,#grid td{border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
 #grid .fc{position:sticky;z-index:2}
-#grid .fc1{left:0;min-width:130px;max-width:130px}
-#grid .fc2{left:130px;min-width:150px;max-width:150px}
-#grid .fc3{left:280px;min-width:90px;max-width:90px}
-#grid .fc4{left:370px;min-width:100px;max-width:100px}
-#grid .fc5{left:470px;min-width:125px;max-width:125px;box-shadow:2px 0 0 var(--line)}
+#grid{--w1:130px;--w2:150px;--w3:90px;--w4:100px;--w5:125px}
+#grid .fc1{left:0;width:var(--w1);min-width:var(--w1);max-width:var(--w1)}
+#grid .fc2{left:var(--w1);width:var(--w2);min-width:var(--w2);max-width:var(--w2)}
+#grid .fc3{left:calc(var(--w1) + var(--w2));width:var(--w3);min-width:var(--w3);max-width:var(--w3)}
+#grid .fc4{left:calc(var(--w1) + var(--w2) + var(--w3));width:var(--w4);min-width:var(--w4);max-width:var(--w4)}
+#grid .fc5{left:calc(var(--w1) + var(--w2) + var(--w3) + var(--w4));width:var(--w5);min-width:var(--w5);max-width:var(--w5);box-shadow:2px 0 0 var(--line)}
+#grid th.fc{overflow:visible}
+#grid .rz{position:absolute;top:0;right:-3px;bottom:0;width:7px;cursor:col-resize;z-index:6;touch-action:none}
+#grid .rz:hover,#grid .rz.on{background:rgba(255,255,255,.55)}
 #grid td.fc{overflow:hidden;text-overflow:ellipsis}
 #grid td.type.fc{background:var(--panel)}
 #grid .fcw{position:sticky;left:0;z-index:2}
@@ -207,7 +211,7 @@ td.lab{font-weight:600}
 </head>
 <body>
 <header>
-  <h1>Man-Hour Tracker</h1>
+  <h1>Man-hour tracker</h1>
   <p>Type hours straight into the grid, or import your Excel sheet. Data stays in this browser.</p>
 </header>
 
@@ -299,7 +303,7 @@ td.lab{font-weight:600}
 
 <section id="v-tms" hidden>
   <div class="bar">
-    <label>Project<select id="tmsproj" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);min-width:420px"></select></label>
+    <label>Project<select id="tmsproj" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);min-width:220px"></select></label>
     <label>Warn at (% of plan)<input type="number" id="tmswarn" min="0" max="100" step="5" style="width:100px"></label>
     <label>Occupancy based on<select id="tmsocc" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"><option value="plan">Plan MH</option><option value="actual">Actual MH</option></select></label>
     <span class="sp"></span>
@@ -401,15 +405,15 @@ function fmt(n){return n?q4(n):""}
 
 var freshItems=[];
 function render(){
-  autoHol();optsUi();
+  autoHol();optsUi();applyColW();
   $("hideempty").checked=S.hideEmpty!==false;
   if(S.dates.length){var a=$("bf").value,b=$("bto").value,f0=S.dates[0],l0=S.dates[S.dates.length-1];
     if(!a||a<f0||a>l0)$("bf").value=f0;if(!b||b<f0||b>l0)$("bto").value=l0}fillSelects();renderLists();renderSheet();if(!$("calpop").hidden)renderCal();renderWeekly();renderHalves();renderDash();renderTms();renderDispatch();
-  var g=$("grid"),h="<thead><tr><th class=\"fc fc1\">Project</th><th class=\"fc fc2\">Task</th><th class=\"fc fc3\">Description</th><th class=\"fc fc4\">Target</th><th class=\"fc fc5\"></th>";
+  var g=$("grid"),h="<thead><tr><th class=\"fc fc1\">Project<i class=\"rz\" data-rz=\"1\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc2\">Task<i class=\"rz\" data-rz=\"2\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc3\">Description<i class=\"rz\" data-rz=\"3\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc4\">Target<i class=\"rz\" data-rz=\"4\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc5\"><i class=\"rz\" data-rz=\"5\" title=\"Drag to resize, double-click to reset\"></i></th>";
   S.dates.forEach(function(s){var d=parseIso(s),w=d.getDay()%6===0;
     h+='<th class="'+(dayCls(s)||(w?"wk":""))+'"'+(dayCls(s)?' title="'+esc((S.ts[s]||{}).h||"")+'"':"")+'>'+(d.getMonth()+1)+"/"+d.getDate()+"<small>"+"SMTWTFS"[d.getDay()]+"</small></th>"});
   h+="<th>Total</th><th></th></tr>";
-  h+='<tr class="dtype"><th class="fcw" colspan="7" style="text-align:left">Day type</th>';
+  h+='<tr class="dtype"><th class="fcw" colspan="5" style="text-align:left">Day type</th>';
   S.dates.forEach(function(s){
     var cur=(S.ts[s]||{}).h||"";
     var opts='<option value="">—</option>'+S.lists.holidays.map(function(x){return"<option"+(x===cur?" selected":"")+">"+esc(x)+"</option>"}).join("");
@@ -1368,6 +1372,22 @@ $("dpg").addEventListener("click",function(e){
 $("dpcadd").onclick=function(){
   var d=$("dpcd").value;if(!d)return say("Pick a date for the extra holiday.");
   S.custH.push({date:d,name:$("dpcn").value.trim(),cal:$("dpcc").value});$("dpcd").value="";$("dpcn").value="";save();render()};
+
+// ---------- resizable left columns ----------
+var CW0=[130,150,90,100,125];
+function applyColW(){var g=$("grid"),w=S.colW||[];for(var i=0;i<5;i++)g.style.setProperty("--w"+(i+1),(w[i]||CW0[i])+"px")}
+(function(){
+  var g=$("grid"),cur=null;
+  g.addEventListener("pointerdown",function(e){
+    var h=e.target.closest(".rz");if(!h)return;e.preventDefault();
+    var i=+h.dataset.rz-1;S.colW=S.colW||CW0.slice();
+    cur={i:i,x:e.clientX,w:S.colW[i]||CW0[i],h:h};h.classList.add("on");try{h.setPointerCapture(e.pointerId)}catch(x){}});
+  g.addEventListener("pointermove",function(e){
+    if(!cur)return;S.colW[cur.i]=Math.max(40,Math.min(520,Math.round(cur.w+e.clientX-cur.x)));applyColW()});
+  var end=function(){if(!cur)return;cur.h.classList.remove("on");cur=null;save()};
+  g.addEventListener("pointerup",end);g.addEventListener("pointercancel",end);
+  g.addEventListener("dblclick",function(e){var h=e.target.closest(".rz");if(!h)return;var i=+h.dataset.rz-1;S.colW=S.colW||CW0.slice();S.colW[i]=CW0[i];applyColW();save()});
+})();
 function syncBar(){if(S.dates.length){$("start").value=S.dates[0];$("days").value=S.dates.length}}
 load();ensureLists();
 buildPeriod();
