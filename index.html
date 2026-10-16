@@ -419,7 +419,6 @@ td.lab{font-weight:600}
 <section id="v-weekly" hidden>
   <div class="bar"><label>Week starting<input type="date" id="wkdate"></label><button id="wkprev">◀ Prev week</button><button id="wknext">Next week ▶</button><span class="sp"></span><button id="wkx">Export weekly report</button><button id="wkprint">Print</button></div>
   <div class="wrap"><table id="weekly" class="rep"></table></div>
-  <div class="hint" style="padding:0 20px 20px">Job No. = 7-digit job code from the project name – scope-of-work code – A (Revision), D (Creation) or C (Checking). A “?” means something is missing: the project name needs a 7-digit code, the task must be one of the scope-of-work names, or the description must be Revision, Creation or Checking. Output Product is the project name and Work Description is the scope of work. Projects with a 7-digit code count as Engineering. Coffee Break, Vacation Leave, Sick Leave and Official Business/Undertime are TM Concerns. Everything else (Administrative, Meeting, Japanese, Report, Seminar and other tasks) counts as TJAS Activities. Tracker tasks named after a column (for example “Meeting”) land in that column. The grey placeholders on the extra row come from days marked VL, SL or OB, and you can overtype them.</div>
 </section>
 
 <section id="v-lists" hidden>
@@ -474,18 +473,15 @@ function render(){
     ["est","log"].forEach(function(k,r){
       var tot=0;
       h+="<tr>";
-      if(!r)h+='<td class="lab fc fc1" rowspan="3" title="'+esc(it.project||"")+'">'+esc(it.project||"")+'</td><td class="lab fc fc2" rowspan="3" title="'+esc(it.task)+'">'+esc(it.task)+'</td><td class="lab2 fc fc3 rg" rowspan="3" data-rg="'+i+'" title="Click to pick a date range for this activity">'+esc(it.desc)+'</td><td class="lab2 fc fc4" rowspan="3" title="Targets set on this activity. Choose a target per day in the Target row.">'+esc(tgSum(it))+"</td>";
+      if(!r)h+='<td class="lab fc fc1" rowspan="2" title="'+esc(it.project||"")+'">'+esc(it.project||"")+'</td><td class="lab fc fc2" rowspan="2" title="'+esc(it.task)+'">'+esc(it.task)+'</td><td class="lab2 fc fc3 rg" rowspan="2" data-rg="'+i+'" title="Click to pick a date range for this activity">'+esc(it.desc)+'</td><td class="lab2 fc fc4" rowspan="2"><select class="tg" data-tg="'+i+'" title="Target for this activity in the dates shown (this period only)" aria-label="Target">'+topts(tgCur(it))+"</select></td>";
       h+='<td class="type fc fc5">'+(k==="est"?"Estimated Time":"Logged Time")+"</td>";
       S.dates.forEach(function(s){
         var v=it[k][s],w=parseIso(s).getDay()%6===0;tot+=num(v);
         h+='<td class="c '+dayCls(s)+" "+(w?"wk ":"")+(v?"has ":"")+(k==="est"?"e":"l")+'"><input type="number" step="0.5" min="0" data-i="'+i+'" data-k="'+k+'" data-d="'+s+'" value="'+(v||"")+'" aria-label="'+k+" "+s+'"></td>'});
       h+='<td class="tot">'+fmt(tot)+"</td>";
-      if(!r)h+='<td rowspan="3"><button class="del" data-del="'+i+'" title="Delete task">✕</button></td>';
+      if(!r)h+='<td rowspan="2"><button class="del" data-del="'+i+'" title="Delete task">✕</button></td>';
       h+="</tr>"});
-    h+='<tr class="tgrow"><td class="type fc fc5">Target</td>';
-    S.dates.forEach(function(s){var w=parseIso(s).getDay()%6===0,cur=tgOf(it,s);
-      h+='<td class="c tgc '+dayCls(s)+" "+(w?"wk ":"")+(cur?"has":"")+'"><select class="tg" data-tgi="'+i+'" data-tgd="'+s+'" title="'+esc(cur||"No target")+'" aria-label="Target '+s+'">'+topts(cur)+"</select></td>"});
-    h+='<td class="tot"></td></tr>';
+
   });
   if(!shown)h+='<tr><td colspan="'+(S.dates.length+7)+'" class="empty">No tasks have hours in this range. Untick "Hide tasks with no hours" to see all tasks.</td></tr>';
   h+="</tbody><tfoot>";
@@ -786,11 +782,11 @@ $("grid").addEventListener("change",function(e){
   save();render()});
 function isHol(s){return/holiday/i.test((S.ts&&S.ts[s]&&S.ts[s].h)||"")}
 function topts(v){var l=S.lists.targets.slice();if(v&&l.indexOf(v)<0)l.push(v);return'<option value=""></option>'+l.map(function(x){return"<option"+(x===v?" selected":"")+">"+esc(x)+"</option>"}).join("")}
-function tgSum(it){var u={};S.dates.forEach(function(d){var t=tgOf(it,d);if(t&&true)u[t]=1});var k=Object.keys(u);return k.length?k.join(", "):"–"}
+function tgCur(it){var c={},best="",n=0;S.dates.forEach(function(d){var t=tgOf(it,d);if(t){c[t]=(c[t]||0)+1;if(c[t]>n){n=c[t];best=t}}});return best}
 $("grid").addEventListener("change",function(e){
-  var t=e.target;if(t.dataset.tgd===undefined)return;
-  var it=S.items[+t.dataset.tgi];it.tgd=it.tgd||{};
-  if(t.value)it.tgd[t.dataset.tgd]=t.value;else delete it.tgd[t.dataset.tgd];
+  var t=e.target;if(t.dataset.tg===undefined)return;
+  var it=S.items[+t.dataset.tg];it.tgd=it.tgd||{};
+  S.dates.forEach(function(d){if(t.value)it.tgd[d]=t.value;else delete it.tgd[d]}); // only the dates in view (this period)
   save();render()});
 function targetTotals(){
   var m={};
@@ -1184,7 +1180,6 @@ function rgRender(){
   h+='<div class="prow" style="justify-content:flex-start"><button type="button" data-rq="wk">All weekdays</button><button type="button" data-rq="all">All days</button><button type="button" data-rq="clr">Clear selection</button></div>';
   h+='<div class="prow" style="align-items:end"><label style="flex:1">Hours per day<input type="number" id="rgh" step="0.25" min="0" value="'+esc(rgOpt.h)+'"></label><label style="flex:1">Apply to<select id="rgf"><option value="log"'+(rgOpt.f==="log"?" selected":"")+'>Logged time</option><option value="est"'+(rgOpt.f==="est"?" selected":"")+'>Estimated time</option></select></label></div>';
   h+='<div class="prow" style="justify-content:flex-start;gap:14px"><label class="chk"><input type="checkbox" id="rgskip"'+(rgOpt.skip?" checked":"")+'>Skip weekends and holidays</label><label class="chk"><input type="checkbox" id="rgow"'+(rgOpt.ow?" checked":"")+'>Overwrite filled days</label></div>';
-  h+='<div class="prow" style="align-items:end"><label style="flex:1">Target for these days<select id="rgtg">'+topts(rgOpt.tg||"")+'</select></label><button type="button" id="rgtgo" title="Set (or clear) the target on the selected days only, without changing hours">Set target only</button></div>';
   h+='<div class="prow"><button type="button" id="rgdel">Clear selected days</button><button type="button" id="rgapply" class="primary">Apply</button></div>';
   p.innerHTML=h}
 function rgOpen(i,cell){
@@ -1210,11 +1205,6 @@ $("rgpop").addEventListener("click",function(e){
     return rgRender()}
   var it=S.items[rgI];if(!it)return;
   var ds=Object.keys(rgSel).sort();
-  if(b.id==="rgtgo"){
-    if(!ds.length)return say("Select some days on the calendar first.");
-    it.tgd=it.tgd||{};ds.forEach(function(d){if(rgOpt.tg)it.tgd[d]=rgOpt.tg;else delete it.tgd[d]});
-    ensureLists();save();render();$("rgpop").hidden=true;
-    return say((rgOpt.tg?"Set target "+rgOpt.tg:"Cleared the target")+" on "+ds.length+" day"+(ds.length===1?"":"s")+" for "+it.task+" · "+it.desc+".")}
   if(b.id==="rgapply"||b.id==="rgdel"){
     if(!ds.length)return say("Select some days on the calendar first.");
     var f=rgOpt.f,n=0,off=0,filled=0;
@@ -1223,13 +1213,12 @@ $("rgpop").addEventListener("click",function(e){
     ds.forEach(function(d){
       if(rgOpt.skip&&nomDef(d)===0){off++;return}
       if(!rgOpt.ow&&it[f][d]){filled++;return}
-      it[f][d]=hr;n++;if(rgOpt.tg){it.tgd=it.tgd||{};it.tgd[d]=rgOpt.tg}});
+      it[f][d]=hr;n++});
     save();render();$("rgpop").hidden=true;
     say("Set "+hr+" hr"+(hr===1?"":"s")+" of "+(f==="log"?"logged":"estimated")+" time on "+n+" day"+(n===1?"":"s")+(off?", skipped "+off+" weekend/holiday":"")+(filled?", left "+filled+" filled day"+(filled===1?"":"s")+" as is":"")+".")}});
 $("rgpop").addEventListener("change",function(e){
   var t=e.target;
   if(t.id==="rgh")rgOpt.h=t.value;
-  if(t.id==="rgtg")rgOpt.tg=t.value;
   if(t.id==="rgf"){rgOpt.f=t.value;rgRender()}
   if(t.id==="rgskip")rgOpt.skip=t.checked;
   if(t.id==="rgow")rgOpt.ow=t.checked});
@@ -1699,9 +1688,9 @@ var TIPS=[
  ["#grid .rz","Drag to change this column's width. Double-click to reset."],
  ["#grid th.fc1","Project (7-digit job code and name)."],["#grid th.fc2","Task: the scope of work."],
  ["#grid th.fc3","Description: Revision, Checking, Creation or the activity. Click a cell below to fill a date range."],
- ["#grid th.fc4","Targets used by this activity. Set them per day in the Target row."],
+ ["#grid th.fc4","Target group for this activity. Applies to the dates shown (this period) only."],
  ["#grid td.rg","Click to pick a date range for this activity, handy for routine tasks."],
- ["#grid select.tg","Target for this activity on this day only. Totals per target appear on the Dashboard and TMS."],
+ ["#grid select.tg","Target group for this activity in this period. Other periods keep their own. Totals per target appear on the Dashboard and TMS."],
  ["#grid input[data-k=est]","Estimated hours planned for this task on this date."],
  ["#grid input[data-k=log]","Logged (actual) hours worked on this task on this date."],
  ["#grid select[data-dt]","Day type for this date (WFO, WFH, VL, SL, Holiday...). Holiday shows grey, VL and SL pink."],
