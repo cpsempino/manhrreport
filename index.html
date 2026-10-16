@@ -905,7 +905,7 @@ function renderWeekly(){
   var N=CATS.slice(0,5),TM=CATS.slice(5);
   var h="<caption>NAME: "+esc(S.tsName||"")+"&nbsp;&nbsp;&nbsp;&nbsp;WEEK: "+w.ws+" – "+w.days[6]+'</caption><thead><tr><th rowspan="2">Output Product</th><th rowspan="2">Job No.</th><th rowspan="2">Work Description</th><th rowspan="2">Consumed<br>Manhour</th>';
   N.forEach(function(c){h+='<th rowspan="2">'+c[1]+"</th>"});
-  h+='<th colspan="'+TM.length+'">TM Concerns</th></tr><tr>';
+
   TM.forEach(function(c){h+="<th>"+c[1]+"</th>"});
   h+="</tr></thead><tbody>";
   var n=Math.max(12,w.rows.length),nc=CATS.length;
@@ -921,7 +921,7 @@ function renderWeekly(){
   var ft='<tr><td colspan="3" style="text-align:left">Column total</td><td>'+fmt(w.eng+(w.tjas-w.cat.adm-w.cat.meet-w.cat.jp-w.cat.rep-w.cat.sem))+"</td>";
   CATS.forEach(function(c){ft+="<td>"+fmt(w.cat[c[0]])+"</td>"});
   var row=function(l,v,b){return'<tr class="wk-sum"><td colspan="3" style="text-align:left;'+(b?"font-weight:800":"")+'">'+l+'</td><td'+(b?' style="font-weight:800"':"")+">"+(fmt(v)||0)+'</td><td colspan="'+nc+'"></td></tr>'};
-  $("weekly").innerHTML=h+"</tbody><tfoot>"+ft+"</tr>"+row("Total Engineering (projects with a 7-digit code)",w.eng)+row("Total TJAS Activities",w.tjas)+row("Total TM Concerns (breaks, leaves, OB)",w.tm)+row("Total Man-Hr",w.tot,true)+"</tfoot>"}
+  $("weekly").innerHTML=h+"</tbody><tfoot>"+ft+"</tr>"+row("Total Engineering",w.eng)+row("Total TJAS Activities",w.tjas)+row("Total TM Concerns",w.tm)+row("Total Man-Hr",w.tot,true)+"</tfoot>"}
 $("weekly").addEventListener("change",function(e){
   var t=e.target;if(!t.dataset.wk)return;
   var ws=S.wkStart||defWeek();S.wk=S.wk||{};var o=S.wk[ws]=S.wk[ws]||{};
