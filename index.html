@@ -94,6 +94,9 @@ tfoot td{background:var(--task2);font-weight:600;padding:5px 6px}
 #grid thead tr:first-child th.fc{z-index:5}
 #grid thead tr.dtype th.fcw{position:sticky;left:0;top:auto;z-index:2}
 @media (max-width:900px){#grid .fc,#grid .fcw{left:auto!important}#grid tbody .fc,#grid tfoot .fcw,#grid thead tr.dtype th.fcw{position:static}}
+.dpb{font-size:9px;font-weight:700;background:var(--head);color:#fff;border-radius:3px;padding:0 3px;vertical-align:middle}
+#grid thead th.dsp{box-shadow:inset 0 -4px 0 #f2b84b}
+.wk-sum td{background:var(--task2)}
 #grid select.tg{border:0;background:transparent;font:inherit;font-size:10px;color:var(--ink);padding:2px 0;width:100%;max-width:100%;min-width:0;appearance:none;-webkit-appearance:none;text-align:center;cursor:pointer}
 #grid td.tgc{padding:0}
 #grid td.tgc.has select.tg{font-weight:700;color:var(--head)}
@@ -225,7 +228,7 @@ td.lab{font-weight:600}
 </head>
 <body>
 <header>
-  <h1>Man-hour tracker</h1>
+  <h1>Man-Hour Tracker</h1>
   <p>Type hours straight into the grid, or import your Excel sheet. Data stays in this browser.</p>
 </header>
 
@@ -240,6 +243,7 @@ td.lab{font-weight:600}
   <button id="t-backup">Backup</button>
 </nav>
 <div class="bar" id="pbar"><label>Month (period)<select id="pm" style="padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel)"></select></label><label>Year<input type="number" id="py" style="width:90px"></label><span id="plabel" class="hint" style="padding-bottom:8px"></span><span class="sp"></span><span id="wsrow"><label>Work setting<select id="wset" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel)"><option value="N">Normal work</option><option value="D">Dispatch (TJAS)</option></select></label><label>From<input type="date" id="wsf"></label><label>To<input type="date" id="wst"></label><button id="wsgo" class="primary">Apply</button><button id="optbtn" aria-expanded="false" aria-controls="opts">Options ▾</button></span></div>
+<div id="wsline" class="hint" style="margin:-2px 0 8px"></div>
 <section id="v-tracker">
 <div id="msg" role="status"></div>
 <div id="opts" hidden>
@@ -415,7 +419,7 @@ td.lab{font-weight:600}
 <section id="v-weekly" hidden>
   <div class="bar"><label>Week starting<input type="date" id="wkdate"></label><button id="wkprev">◀ Prev week</button><button id="wknext">Next week ▶</button><span class="sp"></span><button id="wkx">Export weekly report</button><button id="wkprint">Print</button></div>
   <div class="wrap"><table id="weekly" class="rep"></table></div>
-  <div class="hint" style="padding:0 20px 20px">Job No. = 7-digit job code from the project name – scope-of-work code – A (Revision), D (Creation) or C (Checking). A “?” means something is missing: the project name needs a 7-digit code, the task must be one of the scope-of-work names, or the description must be Revision, Creation or Checking. Output Product is the project name and Work Description is the scope of work. Vacation Leave, Sick Leave and Official Business/Undertime fall under TM Concerns; their grey placeholders are filled from days marked VL, SL or OB (regular hours per day), and you can overtype them.</div>
+  <div class="hint" style="padding:0 20px 20px">Job No. = 7-digit job code from the project name – scope-of-work code – A (Revision), D (Creation) or C (Checking). A “?” means something is missing: the project name needs a 7-digit code, the task must be one of the scope-of-work names, or the description must be Revision, Creation or Checking. Output Product is the project name and Work Description is the scope of work. Projects with a 7-digit code count as Engineering. Coffee Break, Vacation Leave, Sick Leave and Official Business/Undertime are TM Concerns. Everything else (Administrative, Meeting, Japanese, Report, Seminar and other tasks) counts as TJAS Activities. Tracker tasks named after a column (for example “Meeting”) land in that column. The grey placeholders on the extra row come from days marked VL, SL or OB, and you can overtype them.</div>
 </section>
 
 <section id="v-lists" hidden>
@@ -453,7 +457,7 @@ function render(){
     if(!a||a<f0||a>l0)$("bf").value=f0;if(!b||b<f0||b>l0)$("bto").value=l0}fillSelects();renderLists();renderSheet();if(!$("calpop").hidden)renderCal();renderWeekly();renderHalves();renderDash();renderTms();renderDispatch();
   var g=$("grid"),h="<thead><tr><th class=\"fc fc1\">Project<i class=\"rz\" data-rz=\"1\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc2\">Task<i class=\"rz\" data-rz=\"2\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc3\">Description<i class=\"rz\" data-rz=\"3\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc4\">Target<i class=\"rz\" data-rz=\"4\" title=\"Drag to resize, double-click to reset\"></i></th><th class=\"fc fc5\"><i class=\"rz\" data-rz=\"5\" title=\"Drag to resize, double-click to reset\"></i></th>";
   S.dates.forEach(function(s){var d=parseIso(s),w=d.getDay()%6===0;
-    h+='<th class="'+(dayCls(s)||(w?"wk":""))+'"'+(dayCls(s)?' title="'+esc((S.ts[s]||{}).h||"")+'"':"")+'>'+(d.getMonth()+1)+"/"+d.getDate()+"<small>"+"SMTWTFS"[d.getDay()]+"</small></th>"});
+    h+='<th class="'+(dayCls(s)||(w?"wk":""))+(isDispatch(s)?" dsp":"")+'"'+(dayCls(s)?' title="'+esc((S.ts[s]||{}).h||"")+'"':"")+'>'+(d.getMonth()+1)+"/"+d.getDate()+"<small>"+"SMTWTFS"[d.getDay()]+"</small></th>"});
   h+="<th>Total</th><th></th></tr>";
   h+='<tr class="dtype"><th class="fcw" colspan="5" style="text-align:left">Day type</th>';
   S.dates.forEach(function(s){
@@ -701,7 +705,7 @@ $("lt").addEventListener("paste",function(e){
   say("Pasted "+rows.length+" row"+(rows.length===1?"":"s")+".")});
 function optsUi(){var o=!!S.optOpen;$("opts").hidden=!o;$("optbtn").textContent=o?"Options ▴":"Options ▾";$("optbtn").setAttribute("aria-expanded",o)}
 $("optbtn").onclick=function(){S.optOpen=!S.optOpen;save();optsUi()};
-function tab(n){$("wsrow").hidden=!(n==="tracker"||n==="sheet");if(n==="backup"&&$("subname")&&!$("subname").value)$("subname").value=S.tsName||"";["tracker","sheet","weekly","tms","dash","team","lists","backup"].forEach(function(k){$("v-"+k).hidden=k!==n;$("t-"+k).classList.toggle("on",k===n)});say("")}
+function tab(n){$("wsrow").hidden=!(n==="tracker"||n==="sheet");setTimeout(function(){$("wsline").hidden=!(n==="tracker"||n==="sheet");$("wsline").innerHTML=wsLine()},0);if(n==="backup"&&$("subname")&&!$("subname").value)$("subname").value=S.tsName||"";["tracker","sheet","weekly","tms","dash","team","lists","backup"].forEach(function(k){$("v-"+k).hidden=k!==n;$("t-"+k).classList.toggle("on",k===n)});say("")}
 ["tracker","sheet","weekly","tms","dash","team","lists","backup"].forEach(function(k){$("t-"+k).onclick=function(){tab(k)}});
 $("golists").onclick=function(){tab("lists")};
 $("sprint").onclick=function(){window.print()};
@@ -752,13 +756,14 @@ function renderSheet(){
   dts.forEach(function(s){
     var d=parseIso(s),wd=d.getDay(),c=calc(s),t=c.t;
     if(c.w!==null){tw+=c.w;te+=c.e}
-    h+='<tr class="'+(dayCls(s)||(wd===6?"sat":wd===0?"sun":""))+'"><td>'+String(d.getDate()).padStart(2,"0")+"（"+jp[wd]+"）</td>"
+    h+='<tr class="'+(dayCls(s)||(wd===6?"sat":wd===0?"sun":""))+'"><td>'+String(d.getDate()).padStart(2,"0")+"（"+jp[wd]+"）"+(isDispatch(s)?' <small class="dpb" title="Dispatch (TJAS)">JP</small>':"")+"</td>"
      +"<td>"+inp(s,"s","time",t.s)+"</td><td>"+inp(s,"e","time",t.e)+"</td>"
      +"<td>"+(c.a!==null?inp(s,"b","number",c.br,' step="0.25" min="0" style="width:52px"')+" hr":"")+"</td>"
      +"<td>"+(c.w===null?"":c.w.toFixed(2)+" hrs")+"</td>"
      +"<td>"+(c.w===null?"":(c.e?c.e.toFixed(2):"-"))+"</td><td>"+(c.w===null?"":(c.e?c.e.toFixed(2):"-"))+"</td>"
      +'<td class="rm"><div class="rmw"><select data-d="'+s+'" data-f="h" aria-label="Day type">'+hopts(t.h)+"</select>"+inp(s,"r","text",t.r)+"</div>"+(daySummary(s)?'<details class="rsum" data-ds="'+s+'"'+(tsOpen[s]?" open":"")+"><summary>"+esc(daySummary(s).replace(/; /g," · "))+"</summary>"+daySummaryG(s).map(function(x){return"<div><b>"+esc(x[0])+"</b>"+x[1].map(function(w){return"<br>"+esc(w)}).join("")+"</div>"}).join("")+"</details>":"")+"</td></tr>"});
   $("sheet").innerHTML=h+'</tbody><tfoot><tr><td>TOTAL</td><td></td><td></td><td></td><td>'+tw.toFixed(2)+" hrs</td><td>"+te.toFixed(2)+"</td><td>"+te.toFixed(2)+"</td><td></td></tr></tfoot>";
+  $("wsline").innerHTML=wsLine();
 }
 $("grid").addEventListener("change",function(e){
   var t=e.target;if(t.dataset.dt===undefined)return;
@@ -877,35 +882,50 @@ function jobNo(it){
   var L=/^rev/i.test(d)?"A":/^(cre|new)/i.test(d)?"D":/^che/i.test(d)?"C":"?";
   return (m?m[0]:"???????")+"-"+(c==null?"?":c)+L}
 function defWeek(){var d=new Date();d.setDate(d.getDate()-((d.getDay()+6)%7));return iso(d)}
+var CKEY={adm:/admin|義務/i,meet:/meeting|会議/i,jp:/japanese|日本語/i,rep:/report/i,sem:/seminar/i,cof:/coffee|break/i,vl:/vacation|^\s*vl\s*$/i,sl:/sick|^\s*sl\s*$/i,ob:/official|undertime|^\s*ob\s*$/i};
+function catOf(it){
+  var f=[it.task,it.desc,it.project];
+  for(var k in CKEY)if(f.some(function(x){return CKEY[k].test(String(x||""))}))return k;
+  return ""}
 function wkModel(){
   var ws=S.wkStart||defWeek(),days=mkRange(ws,7),m=(S.wk&&S.wk[ws])||{},g={},order=[];
   S.items.forEach(function(it){
     var h=0;days.forEach(function(d){h+=num(it.log[d])});if(!h)return;
     var k=[it.project,it.task,it.desc].join("\u0001");
-    if(!g[k]){g[k]={out:it.project||"",job:jobNo(it),desc:it.task||"",h:0};order.push(g[k])}
+    if(!g[k]){var eng=/\d{7}/.test(it.project||""),c=eng?"":catOf(it);
+      g[k]={out:it.project||"",job:eng?jobNo(it):"",desc:it.task||"",h:0,kind:eng?"eng":(c?"cat":"tjas"),cat:c};order.push(g[k])}
     g[k].h+=h});
-  var auto={vl:0,sl:0,ob:0},cat={},tot=0;
+  var rank={eng:0,tjas:1,cat:2};
+  order=order.map(function(r,i){return[r,i]}).sort(function(a,b){return rank[a[0].kind]-rank[b[0].kind]||a[1]-b[1]}).map(function(x){return x[0]});
+  var auto={vl:0,sl:0,ob:0},cat={},itemCat={},eng=0,tj=0;
   days.forEach(function(d){var t=((S.ts[d]||{}).h||"").trim().toLowerCase();if(t==="vl"||t==="vacation leave")auto.vl+=baseNom(d);if(t==="sl"||t==="sick leave")auto.sl+=baseNom(d);if(t==="ob"||t==="official business")auto.ob+=baseNom(d)});
-  CATS.forEach(function(c){cat[c[0]]=m[c[0]]!==undefined?m[c[0]]:(auto[c[0]]||0)});
-  order.forEach(function(r){tot+=r.h});
-  return{ws:ws,days:days,m:m,rows:order,auto:auto,cat:cat,tot:tot}}
+  CATS.forEach(function(c){itemCat[c[0]]=0});
+  order.forEach(function(r){if(r.kind==="eng")eng+=r.h;else if(r.kind==="tjas")tj+=r.h;else itemCat[r.cat]+=r.h});
+  CATS.forEach(function(c){cat[c[0]]=itemCat[c[0]]+(m[c[0]]!==undefined?m[c[0]]:(auto[c[0]]||0))});
+  var tjas=tj+cat.adm+cat.meet+cat.jp+cat.rep+cat.sem,tm=cat.cof+cat.vl+cat.sl+cat.ob;
+  return{ws:ws,days:days,m:m,rows:order,auto:auto,cat:cat,eng:eng,tjas:tjas,tm:tm,tot:eng+tjas+tm}}
 function renderWeekly(){
   var w=wkModel();setv("wkdate",w.ws);
-  var N=CATS.slice(0,6),TM=CATS.slice(6);
+  var N=CATS.slice(0,5),TM=CATS.slice(5);
   var h="<caption>NAME: "+esc(S.tsName||"")+"&nbsp;&nbsp;&nbsp;&nbsp;WEEK: "+w.ws+" – "+w.days[6]+'</caption><thead><tr><th rowspan="2">Output Product</th><th rowspan="2">Job No.</th><th rowspan="2">Work Description</th><th rowspan="2">Consumed<br>Manhour</th>';
   N.forEach(function(c){h+='<th rowspan="2">'+c[1]+"</th>"});
-  h+='<th colspan="3">TM Concerns</th></tr><tr>';
+  h+='<th colspan="'+TM.length+'">TM Concerns</th></tr><tr>';
   TM.forEach(function(c){h+="<th>"+c[1]+"</th>"});
   h+="</tr></thead><tbody>";
-  var n=Math.max(12,w.rows.length),pad=new Array(CATS.length+1).join("<td></td>");
+  var n=Math.max(12,w.rows.length),nc=CATS.length;
   for(var i=0;i<n;i++){var r=w.rows[i];
-    h+=r?'<tr><td class="l">'+esc(r.out)+"</td><td>"+esc(r.job)+'</td><td class="l">'+esc(r.desc)+"</td><td>"+fmt(r.h)+"</td>"+pad+"</tr>":"<tr><td></td><td></td><td></td><td></td>"+pad+"</tr>"}
-  h+='<tr class="np"><td class="l" colspan="3"><b>Non-project time (hours for the week)</b></td><td></td>';
+    if(!r){h+="<tr>"+new Array(4+nc).join("<td></td>")+"</tr>";continue}
+    h+='<tr class="wk-'+r.kind+'"><td class="l">'+esc(r.out)+"</td><td>"+esc(r.job)+'</td><td class="l">'+esc(r.desc)+"</td><td>"+(r.kind==="cat"?"":fmt(r.h))+"</td>";
+    CATS.forEach(function(c){h+="<td>"+(r.kind==="cat"&&r.cat===c[0]?fmt(r.h):"")+"</td>"});
+    h+="</tr>"}
+  h+='<tr class="np"><td class="l" colspan="3"><b>Other time not logged in the tracker (hours for the week)</b></td><td></td>';
   CATS.forEach(function(c){var k=c[0],v=w.m[k],au=w.auto[k];
     h+='<td><input type="number" step="0.5" min="0" data-wk="'+k+'" value="'+(v!==undefined?v:"")+'" placeholder="'+(au?au:"")+'" aria-label="'+c[2]+'"></td>'});
-  var all=w.tot,ft='<tr><td colspan="3" style="text-align:left">TOTAL</td><td>'+fmt(w.tot)+"</td>",tm=0;
-  CATS.forEach(function(c,i){all+=w.cat[c[0]];if(i>=6)tm+=w.cat[c[0]];ft+="<td>"+fmt(w.cat[c[0]])+"</td>"});
-  $("weekly").innerHTML=h+"</tr></tbody><tfoot>"+ft+'</tr><tr><td colspan="10" style="text-align:left">TM CONCERNS TOTAL (VL + SL + OB)</td><td colspan="3">'+fmt(tm)+'</td></tr><tr><td colspan="3" style="text-align:left">GRAND TOTAL (hours)</td><td colspan="10">'+fmt(all)+"</td></tr></tfoot>"}
+  h+="</tr>";
+  var ft='<tr><td colspan="3" style="text-align:left">Column total</td><td>'+fmt(w.eng+(w.tjas-w.cat.adm-w.cat.meet-w.cat.jp-w.cat.rep-w.cat.sem))+"</td>";
+  CATS.forEach(function(c){ft+="<td>"+fmt(w.cat[c[0]])+"</td>"});
+  var row=function(l,v,b){return'<tr class="wk-sum"><td colspan="3" style="text-align:left;'+(b?"font-weight:800":"")+'">'+l+'</td><td'+(b?' style="font-weight:800"':"")+">"+(fmt(v)||0)+'</td><td colspan="'+nc+'"></td></tr>'};
+  $("weekly").innerHTML=h+"</tbody><tfoot>"+ft+"</tr>"+row("Total Engineering (projects with a 7-digit code)",w.eng)+row("Total TJAS Activities",w.tjas)+row("Total TM Concerns (breaks, leaves, OB)",w.tm)+row("Total Man-Hr",w.tot,true)+"</tfoot>"}
 $("weekly").addEventListener("change",function(e){
   var t=e.target;if(!t.dataset.wk)return;
   var ws=S.wkStart||defWeek();S.wk=S.wk||{};var o=S.wk[ws]=S.wk[ws]||{};
@@ -917,15 +937,12 @@ $("wkprev").onclick=function(){shiftWk(-7)};
 $("wknext").onclick=function(){shiftWk(7)};
 $("wkprint").onclick=function(){window.print()};
 $("wkx").onclick=function(){
-  var w=wkModel(),pad=CATS.map(function(){return null}),all=w.tot;
-  var out=[["Name",S.tsName||""],["Week",w.ws+" to "+w.days[6]],[],["Output Product","Job No.","Work Description","Consumed Manhour"].concat(CATS.map(function(c,i){return(i>=6?"TM Concerns - ":"")+c[2]}))];
-  w.rows.forEach(function(r){out.push([r.out,r.job,r.desc,r.h].concat(pad))});
-  out.push(["Non-project time","","",null].concat(CATS.map(function(c){return w.cat[c[0]]||null})));
-  CATS.forEach(function(c){all+=w.cat[c[0]]});
-  out.push(["TOTAL","","",w.tot].concat(CATS.map(function(c){return w.cat[c[0]]})));
-  var tmv=w.cat.vl+w.cat.sl+w.cat.ob;
-  out.push(["TM CONCERNS TOTAL (VL + SL + OB)","","",null].concat(CATS.slice(0,6).map(function(){return null}),[tmv]));
-  out.push(["GRAND TOTAL","","",all]);
+  var w=wkModel(),nc=CATS.length;
+  var out=[["Name",S.tsName||""],["Week",w.ws+" to "+w.days[6]],[],["Output Product","Job No.","Work Description","Consumed Manhour"].concat(CATS.map(function(c,i){return(i>=5?"TM Concerns - ":"")+c[2]}))];
+  w.rows.forEach(function(r){out.push([r.out,r.job,r.desc,r.kind==="cat"?null:r.h].concat(CATS.map(function(c){return r.kind==="cat"&&r.cat===c[0]?r.h:null})))});
+  out.push(["Other time not logged in the tracker","","",null].concat(CATS.map(function(c){var v=w.m[c[0]]!==undefined?w.m[c[0]]:w.auto[c[0]];return v||null})));
+  out.push([]);
+  out.push(["Total Engineering","","",w.eng]);out.push(["Total TJAS Activities","","",w.tjas]);out.push(["Total TM Concerns","","",w.tm]);out.push(["Total Man-Hr","","",w.tot]);
   var ws=XLSX.utils.aoa_to_sheet(out);ws["!cols"]=[{wch:26},{wch:14},{wch:40},{wch:12}].concat(CATS.map(function(){return{wch:14}}));
   var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Weekly report");
   saveXlsx(wb,"weekly-report-"+w.ws+".xlsx")};
@@ -1590,16 +1607,16 @@ function dpSet(a,b,on){
   out.sort(function(x,y){return x.from<y.from?-1:1});
   var m=[];out.forEach(function(r){var l=m[m.length-1];if(l&&addDays(l.to,1)>=r.from){if(r.to>l.to)l.to=r.to}else m.push(r)});
   S.dispatch=m}
-function wsStatus(){
+function wsDates(){return(!$("v-sheet").hidden)?tsDates():S.dates}
+function wsLine(){var t=wsStatus(wsDates());return t?'<b>Work setting in view:</b> '+esc(t)+' <span class="hint">Pick From and To, choose the setting, then Apply. Only those dates change.</span>':""}
+function wsStatus(dl){
   var g=[],cur=null;
-  S.dates.forEach(function(d){var k=isDispatch(d)?"D":"N";if(cur&&cur.k===k)cur.e=d;else{cur={k:k,s:d,e:d};g.push(cur)}});
+  (dl||S.dates).forEach(function(d){var k=isDispatch(d)?"D":"N";if(cur&&cur.k===k)cur.e=d;else{cur={k:k,s:d,e:d};g.push(cur)}});
   var f=function(d){return d.slice(5).replace("-","/")};
   return g.map(function(x){return(x.k==="D"?"Dispatch":"Normal")+" "+f(x.s)+(x.s===x.e?"":"–"+f(x.e))}).join(" · ")}
 function renderDispatch(){
   setv("dpd",S.regD);setv("dpn",S.regN);
-  if(S.dates.length){var f0=S.dates[0],l0=S.dates[S.dates.length-1],a=$("wsf").value,b=$("wst").value;
-    if(!a||a<f0||a>l0)$("wsf").value=f0;if(!b||b<f0||b>l0)$("wst").value=l0}
-  $("wsstat").textContent=wsStatus();
+  $("wsstat").textContent=wsStatus();$("wsline").innerHTML=wsLine();
   var y=+$("dpy").value||(S.dpYear||new Date().getFullYear());S.dpYear=y;setv("dpy",y);
   $("dpcust").innerHTML=S.custH.map(function(c,i){return'<div class="dprow"><span style="flex:1">'+esc(c.date)+" · "+esc(c.name||"Holiday")+' <span class="hint">('+(c.cal==="JP"?"Japan":c.cal==="PH"?"Philippines":"both")+')</span></span><button data-chdel="'+i+'" aria-label="Remove holiday">✕</button></div>'}).join("");
   var tb=function(cal){var l=holList(cal,y);return"<tbody>"+(l.length?l.map(function(r){var d=parseIso(r[0]);return"<tr><td>"+(d.getMonth()+1)+"/"+d.getDate()+" ("+"SMTWTFS"[d.getDay()]+")</td><td>"+esc(r[1])+"</td></tr>"}).join(""):'<tr><td colspan="2" class="hint">None</td></tr>')+"</tbody>"};
@@ -1608,9 +1625,11 @@ $("dpd").onchange=function(){S.regD=num(this.value);save();render()};
 $("dpn").onchange=function(){S.regN=num(this.value);save();render()};
 $("wsgo").onclick=function(){
   var a=$("wsf").value,b=$("wst").value;
-  if(!a||!b||a>b)return say("Pick a From and To date (From must not be after To).");
-  dpSet(a,b,$("wset").value==="D");save();render();
-  say(($("wset").value==="D"?"Dispatch (TJAS)":"Normal work")+" set for "+a+" to "+b+". Hours and holidays follow that setting.")};
+  if(!a||!b)return say("Pick the From and To dates for the work setting first. Only those dates will change.");
+  if(a>b)return say("From must not be after To.");
+  var D=$("wset").value==="D",n=rangeDays(a,b).length;
+  dpSet(a,b,D);save();render();
+  say((D?"Dispatch (TJAS)":"Normal work")+" set for "+a+" to "+b+" ("+n+" day"+(n===1?"":"s")+"). All other dates keep their own setting.")};
 $("dpy").onchange=function(){S.dpYear=+this.value||new Date().getFullYear();save();renderDispatch()};
 $("dpg").addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
@@ -1640,7 +1659,7 @@ function applyColW(){var g=$("grid"),w=S.colW||[];for(var i=0;i<5;i++)g.style.se
 var TIPS=[
  ["#t-tracker","Enter estimated and logged hours per task and day."],
  ["#t-sheet","Attendance sheet: start, closing and break times, working time, excess and OT per day."],
- ["#t-weekly","Weekly report in the Job No. format, with TM Concerns (VL, SL, OB)."],
+ ["#t-weekly","Weekly report: Engineering (7-digit projects), TJAS activities and TM Concerns (breaks, leaves, OB)."],
  ["#t-tms","Man-hour summary per project: plan vs actual per work scope, to check if you are over or on track."],
  ["#t-dash","Summaries by Midterm, Finals or any date range, per project and work scope."],
  ["#t-team","Combine submitted files from your team: by person, by project and per-person dashboards."],
