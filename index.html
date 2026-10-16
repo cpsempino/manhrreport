@@ -94,7 +94,10 @@ tfoot td{background:var(--task2);font-weight:600;padding:5px 6px}
 #grid thead tr:first-child th.fc{z-index:5}
 #grid thead tr.dtype th.fcw{position:sticky;left:0;top:auto;z-index:2}
 @media (max-width:900px){#grid .fc,#grid .fcw{left:auto!important}#grid tbody .fc,#grid tfoot .fcw,#grid thead tr.dtype th.fcw{position:static}}
-#grid select.tg{border:0;background:transparent;font:inherit;color:var(--ink);padding:4px;max-width:84px}
+#grid select.tg{border:0;background:transparent;font:inherit;font-size:10px;color:var(--ink);padding:2px 0;width:100%;max-width:100%;min-width:0;appearance:none;-webkit-appearance:none;text-align:center;cursor:pointer}
+#grid td.tgc{padding:0}
+#grid td.tgc.has select.tg{font-weight:700;color:var(--head)}
+#grid td.tgc select.tg:hover{background:var(--line)}
 .bar label.chk{flex-direction:row;align-items:center;gap:4px;font-size:13px;color:var(--ink)}
 textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:12px/1.4 ui-monospace,Consolas,monospace;word-break:break-all;resize:vertical}
 .card p{margin:0 0 8px}
@@ -222,7 +225,7 @@ td.lab{font-weight:600}
 </head>
 <body>
 <header>
-  <h1>Man-Hour Tracker</h1>
+  <h1>Man-hour tracker</h1>
   <p>Type hours straight into the grid, or import your Excel sheet. Data stays in this browser.</p>
 </header>
 
@@ -313,7 +316,6 @@ td.lab{font-weight:600}
   <select id="np"></select>
   <select id="nt" style="min-width:220px"></select>
   <select id="nd"></select>
-  <select id="ng"></select>
   <button id="addb" class="primary">Add task</button>
   <button id="golists">Edit dropdown lists</button>
 </div>
@@ -426,7 +428,14 @@ var KEY="manhour-tracker-v1";
 var S={dates:[],items:[]}; // items: {task,desc,est:{iso:h},log:{iso:h}}
 var $=function(i){return document.getElementById(i)};
 
-function load(){try{var j=localStorage.getItem(KEY);if(j)S=JSON.parse(j)}catch(e){}}
+// Targets are per day: it.tgd = {iso: targetName}. Older data had one target per activity (it.target); spread it over that activity's days.
+function tgOf(it,d){return(it.tgd&&it.tgd[d])||""}
+function migTg(items){(items||[]).forEach(function(it){
+  if(it&&it.target){var t=it.target;it.tgd=it.tgd||{};
+    var ds={};Object.keys(it.log||{}).forEach(function(d){ds[d]=1});Object.keys(it.est||{}).forEach(function(d){ds[d]=1});
+    Object.keys(ds).forEach(function(d){if(!it.tgd[d])it.tgd[d]=t})}
+  if(it)delete it.target})}
+function load(){try{var j=localStorage.getItem(KEY);if(j)S=JSON.parse(j)}catch(e){}migTg(S.items)}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function parseIso(s){var p=s.split("-");return new Date(+p[0],+p[1]-1,+p[2])}
@@ -461,14 +470,18 @@ function render(){
     ["est","log"].forEach(function(k,r){
       var tot=0;
       h+="<tr>";
-      if(!r)h+='<td class="lab fc fc1" rowspan="2" title="'+esc(it.project||"")+'">'+esc(it.project||"")+'</td><td class="lab fc fc2" rowspan="2" title="'+esc(it.task)+'">'+esc(it.task)+'</td><td class="lab2 fc fc3 rg" rowspan="2" data-rg="'+i+'" title="Click to pick a date range for this activity">'+esc(it.desc)+'</td><td class="lab2 fc fc4" rowspan="2"><select class="tg" data-tg="'+i+'" aria-label="Target">'+topts(it.target)+"</select></td>";
+      if(!r)h+='<td class="lab fc fc1" rowspan="3" title="'+esc(it.project||"")+'">'+esc(it.project||"")+'</td><td class="lab fc fc2" rowspan="3" title="'+esc(it.task)+'">'+esc(it.task)+'</td><td class="lab2 fc fc3 rg" rowspan="3" data-rg="'+i+'" title="Click to pick a date range for this activity">'+esc(it.desc)+'</td><td class="lab2 fc fc4" rowspan="3" title="Targets set on this activity. Choose a target per day in the Target row.">'+esc(tgSum(it))+"</td>";
       h+='<td class="type fc fc5">'+(k==="est"?"Estimated Time":"Logged Time")+"</td>";
       S.dates.forEach(function(s){
         var v=it[k][s],w=parseIso(s).getDay()%6===0;tot+=num(v);
         h+='<td class="c '+dayCls(s)+" "+(w?"wk ":"")+(v?"has ":"")+(k==="est"?"e":"l")+'"><input type="number" step="0.5" min="0" data-i="'+i+'" data-k="'+k+'" data-d="'+s+'" value="'+(v||"")+'" aria-label="'+k+" "+s+'"></td>'});
       h+='<td class="tot">'+fmt(tot)+"</td>";
-      if(!r)h+='<td rowspan="2"><button class="del" data-del="'+i+'" title="Delete task">✕</button></td>';
+      if(!r)h+='<td rowspan="3"><button class="del" data-del="'+i+'" title="Delete task">✕</button></td>';
       h+="</tr>"});
+    h+='<tr class="tgrow"><td class="type fc fc5">Target</td>';
+    S.dates.forEach(function(s){var w=parseIso(s).getDay()%6===0,cur=tgOf(it,s);
+      h+='<td class="c tgc '+dayCls(s)+" "+(w?"wk ":"")+(cur?"has":"")+'"><select class="tg" data-tgi="'+i+'" data-tgd="'+s+'" title="'+esc(cur||"No target")+'" aria-label="Target '+s+'">'+topts(cur)+"</select></td>"});
+    h+='<td class="tot"></td></tr>';
   });
   if(!shown)h+='<tr><td colspan="'+(S.dates.length+7)+'" class="empty">No tasks have hours in this range. Untick "Hide tasks with no hours" to see all tasks.</td></tr>';
   h+="</tbody><tfoot>";
@@ -502,7 +515,7 @@ $("range").onclick=function(){
 $("addb").onclick=function(){
   var t=$("nt").value.trim(),d=$("nd").value.trim();
   if(!t)return say("Pick a task name. Add choices in the Lists tab.");
-  S.items.push({project:$("np").value.trim(),target:$("ng").value,task:t,desc:d||"Checking",est:{},log:{}});freshItems.push(S.items[S.items.length-1]);$("nt").value="";save();render();say("")};
+  S.items.push({project:$("np").value.trim(),task:t,desc:d||"Checking",est:{},log:{}});freshItems.push(S.items[S.items.length-1]);$("nt").value="";save();render();say("")};
 $("clr").onclick=function(){if(confirm("Remove all tasks and hours?")){S.items=[];save();render();$("clrpop").hidden=true}};
 $("clrbtn").onclick=function(e){e.stopPropagation();var p=$("clrpop");$("calpop").hidden=true;$("rgpop").hidden=true;p.hidden=!p.hidden;
   if(!p.hidden&&S.dates.length){if(!$("clrf").value)$("clrf").value=S.dates[0];if(!$("clrt").value)$("clrt").value=S.dates[S.dates.length-1]}};
@@ -557,8 +570,9 @@ function importRaw(rows,hi){
     if(!proj&&!scope&&!task&&!d)return;
     if(!d||(!h&&!e)||!(scope||task)){skipped++;return}
     var tk=scope||task,ds=scope?task:"";
-    var key=proj+"\u0001"+tg+"\u0001"+tk+"\u0001"+ds;
-    if(!map[key]){map[key]={project:proj,target:tg,task:tk,desc:ds,est:{},log:{}};order.push(map[key])}
+    var key=proj+"\u0001"+tk+"\u0001"+ds;
+    if(!map[key]){map[key]={project:proj,task:tk,desc:ds,est:{},log:{},tgd:{}};order.push(map[key])}
+    if(tg)map[key].tgd[d]=tg;
     if(h)map[key].log[d]=(map[key].log[d]||0)+h;
     if(e)map[key].est[d]=(map[key].est[d]||0)+e;
     nrows++;
@@ -568,8 +582,8 @@ function importRaw(rows,hi){
   if(!order.length){say("No usable rows found (need Logged Date and Logged Time).");return true}
   var added=0,upd=0;
   order.forEach(function(n){
-    var ex=S.items.filter(function(x){return(x.project||"")===n.project&&(x.target||"")===n.target&&x.task===n.task&&x.desc===n.desc})[0];
-    if(ex){Object.keys(n.est).forEach(function(d){ex.est[d]=n.est[d]});Object.keys(n.log).forEach(function(d){ex.log[d]=n.log[d]});upd++}
+    var ex=S.items.filter(function(x){return(x.project||"")===n.project&&x.task===n.task&&x.desc===n.desc})[0];
+    if(ex){Object.keys(n.est).forEach(function(d){ex.est[d]=n.est[d]});Object.keys(n.log).forEach(function(d){ex.log[d]=n.log[d]});ex.tgd=ex.tgd||{};Object.keys(n.tgd||{}).forEach(function(d){ex.tgd[d]=n.tgd[d]});upd++}
     else{S.items.push(n);added++}});
   var from=pmin||lmin,to=pmax||lmax;
   if(lmin<from)from=lmin;if(lmax>to)to=lmax;
@@ -606,15 +620,18 @@ function importWb(wb){
     if(r[tc+1]!=null&&String(r[tc+1]).trim())desc=String(r[tc+1]).trim();
     var ty=String(r[tyc]||"").trim().toLowerCase();
     var k=/^est/.test(ty)?"est":/^log/.test(ty)?"log":null;
+    if(ty==="target"&&task){var kk=project+"\u0001"+task+"\u0001"+desc;
+      if(!map[kk]){map[kk]={project:project,task:task,desc:desc,est:{},log:{},tgd:{}};order.push(map[kk])}
+      cols.forEach(function(x){var v=r[x.c];if(v!=null&&String(v).trim())map[kk].tgd[x.d]=String(v).trim()});return}
     if(!k||!task)return;
-    var key=project+"\u0001"+target+"\u0001"+task+"\u0001"+desc;
-    if(!map[key]){map[key]={project:project,target:target,task:task,desc:desc,est:{},log:{}};order.push(map[key])}
-    cols.forEach(function(x){var v=r[x.c];if(typeof v==="number"&&v)map[key][k][x.d]=v});
+    var key=project+"\u0001"+task+"\u0001"+desc;
+    if(!map[key]){map[key]={project:project,task:task,desc:desc,est:{},log:{},tgd:{}};order.push(map[key])}
+    cols.forEach(function(x){var v=r[x.c];if(typeof v==="number"&&v){map[key][k][x.d]=v;if(target&&!map[key].tgd[x.d])map[key].tgd[x.d]=target}});
   });
   var imp=cols.map(function(x){return x.d}).filter(function(v,i,a){return a.indexOf(v)===i}),added=0,upd=0;
   order.forEach(function(n){
-    var ex=S.items.filter(function(x){return(x.project||"")===(n.project||"")&&(x.target||"")===(n.target||"")&&x.task===n.task&&x.desc===n.desc})[0];
-    if(ex){Object.keys(n.est).forEach(function(d){ex.est[d]=n.est[d]});Object.keys(n.log).forEach(function(d){ex.log[d]=n.log[d]});upd++}
+    var ex=S.items.filter(function(x){return(x.project||"")===(n.project||"")&&x.task===n.task&&x.desc===n.desc})[0];
+    if(ex){Object.keys(n.est).forEach(function(d){ex.est[d]=n.est[d]});Object.keys(n.log).forEach(function(d){ex.log[d]=n.log[d]});ex.tgd=ex.tgd||{};Object.keys(n.tgd||{}).forEach(function(d){ex.tgd[d]=n.tgd[d]});upd++}
     else{S.items.push(n);added++}});
   var inView=imp.some(function(d){return S.dates.indexOf(d)>=0});
   if(!inView)S.dates=imp;
@@ -628,7 +645,8 @@ $("exp").onclick=function(){
   var out=[head];
   S.items.forEach(function(it){
     [["est","Estimated Time"],["log","Logged Time"]].forEach(function(p){
-      out.push([it.project||"",it.task,it.desc,it.target||"",p[1]].concat(S.dates.map(function(s){return it[p[0]][s]||null})))})});
+      out.push([it.project||"",it.task,it.desc,"",p[1]].concat(S.dates.map(function(s){return it[p[0]][s]||null})))});
+    if(S.dates.some(function(d){return tgOf(it,d)}))out.push([it.project||"",it.task,it.desc,"","Target"].concat(S.dates.map(function(s){return tgOf(it,s)||null})))});
   var ws=XLSX.utils.aoa_to_sheet(out,{cellDates:true});
   S.dates.forEach(function(s,i){var a=XLSX.utils.encode_cell({r:0,c:5+i});if(ws[a])ws[a].z="m/d"});
   ws["!cols"]=[{wch:20},{wch:36},{wch:14},{wch:12},{wch:16}].concat(S.dates.map(function(){return{wch:6}}));
@@ -651,10 +669,10 @@ function ensureLists(){
     if(S.lists.descs.indexOf("Creation")<0)S.lists.descs.push("Creation");S.scopev1=1}
   S.lists.targets=S.lists.targets||["Target 1","Target 2","Target 3"];
   var add=function(k,v){if(v&&S.lists[k].indexOf(v)<0)S.lists[k].push(v)};
-  S.items.forEach(function(it){add("projects",it.project);add("tasks",it.task);add("descs",it.desc);add("targets",it.target)});
+  S.items.forEach(function(it){add("projects",it.project);add("tasks",it.task);add("descs",it.desc);Object.keys(it.tgd||{}).forEach(function(d){add("targets",it.tgd[d])})});
 }
 function fillSelects(){
-  [["np","projects","Project"],["nt","tasks","Task"],["nd","descs","Description"],["ng","targets","Target"],["bt","holidays","Day type"],["caldt","holidays","No day type (clear)"]].forEach(function(x){
+  [["np","projects","Project"],["nt","tasks","Task"],["nd","descs","Description"],["bt","holidays","Day type"],["caldt","holidays","No day type (clear)"]].forEach(function(x){
     var el=$(x[0]),cur=el.value;
     el.innerHTML='<option value="">'+x[2]+'…</option>'+S.lists[x[1]].map(function(v){return"<option>"+esc(v)+"</option>"}).join("");
     el.value=cur});
@@ -762,17 +780,19 @@ $("grid").addEventListener("change",function(e){
   S.nom=S.nom||{};if(t.value==="")delete S.nom[t.dataset.nom];else S.nom[t.dataset.nom]=num(t.value);
   save();render()});
 function isHol(s){return/holiday/i.test((S.ts&&S.ts[s]&&S.ts[s].h)||"")}
-function topts(v){return'<option value=""></option>'+S.lists.targets.map(function(x){return"<option"+(x===v?" selected":"")+">"+esc(x)+"</option>"}).join("")}
+function topts(v){var l=S.lists.targets.slice();if(v&&l.indexOf(v)<0)l.push(v);return'<option value=""></option>'+l.map(function(x){return"<option"+(x===v?" selected":"")+">"+esc(x)+"</option>"}).join("")}
+function tgSum(it){var u={};S.dates.forEach(function(d){var t=tgOf(it,d);if(t&&true)u[t]=1});var k=Object.keys(u);return k.length?k.join(", "):"–"}
 $("grid").addEventListener("change",function(e){
-  var t=e.target;if(t.dataset.tg===undefined)return;
-  S.items[+t.dataset.tg].target=t.value;save();render()});
+  var t=e.target;if(t.dataset.tgd===undefined)return;
+  var it=S.items[+t.dataset.tgi];it.tgd=it.tgd||{};
+  if(t.value)it.tgd[t.dataset.tgd]=t.value;else delete it.tgd[t.dataset.tgd];
+  save();render()});
 function targetTotals(){
   var m={};
   S.items.forEach(function(it){
-    var k=it.target||"",l=0,e=0;
-    S.dates.forEach(function(s){l+=num(it.log[s]);e+=num(it.est[s])});
-    if(!l&&!e)return;
-    m[k]=m[k]||[0,0];m[k][0]+=e;m[k][1]+=l});
+    S.dates.forEach(function(s){var l=num(it.log[s]),e=num(it.est[s]);
+      if(!l&&!e)return;var k=tgOf(it,s);
+      m[k]=m[k]||[0,0];m[k][0]+=e;m[k][1]+=l})});
   var rows=[],seen={};
   S.lists.targets.concat(Object.keys(m)).forEach(function(k){
     if(!k||seen[k]||!m[k])return;seen[k]=1;rows.push([k,m[k][0],m[k][1]])});
@@ -963,7 +983,7 @@ async function readCode(code,pass){
   return JSON.parse(new TextDecoder().decode(u))}
 function applyState(o){
   if(!o||typeof o!=="object"||!Array.isArray(o.dates)||!Array.isArray(o.items))throw new Error("That isn't a backup from this app.");
-  S=o;ensureLists();save();
+  S=o;migTg(S.items);ensureLists();save();
   if(S.pMonth!==undefined)$("pm").value=S.pMonth;if(S.pYear)$("py").value=S.pYear;
   pLabel();syncBar();render()}
 $("bkfile").onclick=function(){saveFile("manhour-backup-"+iso(new Date())+".json",JSON.stringify(S,null,1))};
@@ -1033,12 +1053,13 @@ function dashPart(name,a,b){
   days.forEach(function(d){var h=((S.ts[d]||{}).h||"").trim().toLowerCase();
     if(h==="wfo")cnt.wfo++;else if(h==="wfh")cnt.wfh++;else if(h==="vl")cnt.vl++;else if(h==="sl")cnt.sl++;else if(/holiday/.test(h))cnt.hol++});
   S.items.forEach(function(it){
-    var l=0,e=0;days.forEach(function(d){l+=num(it.log[d]);e+=num(it.est[d])});est+=e;if(!l&&!e)return;
+    var l=0,e=0;days.forEach(function(d){var dl=num(it.log[d]),de=num(it.est[d]);l+=dl;e+=de;
+      if(dl||de){var tk=tgOf(it,d)||"(no target)",Tt=T[tk]=T[tk]||{l:0,e:0};Tt.l+=dl;Tt.e+=de}});est+=e;if(!l&&!e)return;
     var pk=it.project||"(no project)",sk=it.task||"(no scope)";
     var P=proj[pk]=proj[pk]||{l:0,e:0,o:0,s:{}};P.l+=l;P.e+=e;
     var ds=String(it.desc||""),ty=/^rev/i.test(ds)?"a":/^che/i.test(ds)?"c":/^(cre|new)/i.test(ds)?"d":"o";
     var X=P.s[sk]=P.s[sk]||{l:0,e:0,a:0,c:0,d:0,o:0,ea:0,ec:0,ed:0,eo:0};X.l+=l;X.e+=e;X[ty]+=l;X["e"+ty]+=e;if(ty==="o")P.o+=l;
-    var tgk=it.target||"(no target)",Tt=T[tgk]=T[tgk]||{l:0,e:0};Tt.l+=l;Tt.e+=e});
+    });
   var log=sumLog(days),ot=sumOt(days),worked=days.filter(function(d){return dayLogged(d)>0}).length;
   var kp=function(v,l){return'<div class="kpi"><b>'+v+"</b><span>"+l+"</span></div>"};
   var df=Math.round((log-est)*100)/100;
@@ -1146,6 +1167,7 @@ function rgRender(){
   h+='<div class="prow" style="justify-content:flex-start"><button type="button" data-rq="wk">All weekdays</button><button type="button" data-rq="all">All days</button><button type="button" data-rq="clr">Clear selection</button></div>';
   h+='<div class="prow" style="align-items:end"><label style="flex:1">Hours per day<input type="number" id="rgh" step="0.25" min="0" value="'+esc(rgOpt.h)+'"></label><label style="flex:1">Apply to<select id="rgf"><option value="log"'+(rgOpt.f==="log"?" selected":"")+'>Logged time</option><option value="est"'+(rgOpt.f==="est"?" selected":"")+'>Estimated time</option></select></label></div>';
   h+='<div class="prow" style="justify-content:flex-start;gap:14px"><label class="chk"><input type="checkbox" id="rgskip"'+(rgOpt.skip?" checked":"")+'>Skip weekends and holidays</label><label class="chk"><input type="checkbox" id="rgow"'+(rgOpt.ow?" checked":"")+'>Overwrite filled days</label></div>';
+  h+='<div class="prow" style="align-items:end"><label style="flex:1">Target for these days<select id="rgtg">'+topts(rgOpt.tg||"")+'</select></label><button type="button" id="rgtgo" title="Set (or clear) the target on the selected days only, without changing hours">Set target only</button></div>';
   h+='<div class="prow"><button type="button" id="rgdel">Clear selected days</button><button type="button" id="rgapply" class="primary">Apply</button></div>';
   p.innerHTML=h}
 function rgOpen(i,cell){
@@ -1171,20 +1193,26 @@ $("rgpop").addEventListener("click",function(e){
     return rgRender()}
   var it=S.items[rgI];if(!it)return;
   var ds=Object.keys(rgSel).sort();
+  if(b.id==="rgtgo"){
+    if(!ds.length)return say("Select some days on the calendar first.");
+    it.tgd=it.tgd||{};ds.forEach(function(d){if(rgOpt.tg)it.tgd[d]=rgOpt.tg;else delete it.tgd[d]});
+    ensureLists();save();render();$("rgpop").hidden=true;
+    return say((rgOpt.tg?"Set target "+rgOpt.tg:"Cleared the target")+" on "+ds.length+" day"+(ds.length===1?"":"s")+" for "+it.task+" · "+it.desc+".")}
   if(b.id==="rgapply"||b.id==="rgdel"){
     if(!ds.length)return say("Select some days on the calendar first.");
     var f=rgOpt.f,n=0,off=0,filled=0;
-    if(b.id==="rgdel"){ds.forEach(function(d){if(it[f][d]){delete it[f][d];n++}});save();render();$("rgpop").hidden=true;return say("Cleared "+n+" day"+(n===1?"":"s")+" of "+(f==="log"?"logged":"estimated")+" time for "+it.task+" · "+it.desc+".")}
+    if(b.id==="rgdel"){ds.forEach(function(d){if(it[f][d]){delete it[f][d];n++}if(!it.log[d]&&!it.est[d]&&it.tgd)delete it.tgd[d]});save();render();$("rgpop").hidden=true;return say("Cleared "+n+" day"+(n===1?"":"s")+" of "+(f==="log"?"logged":"estimated")+" time for "+it.task+" · "+it.desc+".")}
     var hr=num(rgOpt.h);if(!(hr>0))return say("Enter the hours per day first.");
     ds.forEach(function(d){
       if(rgOpt.skip&&nomDef(d)===0){off++;return}
       if(!rgOpt.ow&&it[f][d]){filled++;return}
-      it[f][d]=hr;n++});
+      it[f][d]=hr;n++;if(rgOpt.tg){it.tgd=it.tgd||{};it.tgd[d]=rgOpt.tg}});
     save();render();$("rgpop").hidden=true;
     say("Set "+hr+" hr"+(hr===1?"":"s")+" of "+(f==="log"?"logged":"estimated")+" time on "+n+" day"+(n===1?"":"s")+(off?", skipped "+off+" weekend/holiday":"")+(filled?", left "+filled+" filled day"+(filled===1?"":"s")+" as is":"")+".")}});
 $("rgpop").addEventListener("change",function(e){
   var t=e.target;
   if(t.id==="rgh")rgOpt.h=t.value;
+  if(t.id==="rgtg")rgOpt.tg=t.value;
   if(t.id==="rgf"){rgOpt.f=t.value;rgRender()}
   if(t.id==="rgskip")rgOpt.skip=t.checked;
   if(t.id==="rgow")rgOpt.ow=t.checked});
@@ -1209,8 +1237,8 @@ function tmsGroups(p){
   var tg={},any=false,none=false;
   S.items.forEach(function(it){
     if((it.project||"")!==p)return;
-    var h=Object.keys(it.log||{}).some(function(d){return num(it.log[d])>0});if(!h)return;
-    if(it.target){tg[it.target]=1;any=true}else none=true});
+    Object.keys(it.log||{}).forEach(function(d){if(!(num(it.log[d])>0))return;
+      var t=tgOf(it,d);if(t){tg[t]=1;any=true}else none=true})});
   if(!any)return[undefined];
   var known=(S.lists&&S.lists.targets)||[],o=known.filter(function(t){return tg[t]}).concat(Object.keys(tg).filter(function(t){return known.indexOf(t)<0}).sort());
   if(none)o.push("");
@@ -1231,10 +1259,10 @@ function tmsCalc(p,tk){
   var c=tmsCfg(p),rows=tmsRowsOf(p,tk),act=rows.map(function(){return 0}),other=0,names={},first=null,last=null,from=c.from||"",to=c.to||"";
   S.items.forEach(function(it){
     if((it.project||"")!==p)return;
-    if(tk!==undefined&&(it.target||"")!==tk)return;
     var h=0;
     Object.keys(it.log).forEach(function(d){
       var v=num(it.log[d]);if(!v)return;
+      if(tk!==undefined&&tgOf(it,d)!==tk)return;
       if(from&&d<from)return;if(to&&d>to)return;
       h+=v;if(first===null||d<first)first=d;if(last===null||d>last)last=d});
     if(!h)return;
@@ -1358,7 +1386,7 @@ function tqRead(files){
         var nm=(o&&o.mht==="submit1"&&o.name)||D.tsName||x.f.name.replace(/^ManHour_/,"").replace(/\.json$/i,"").replace(/_/g," "),at=(o&&o.savedAt)||"",i=-1;
         TQ.forEach(function(t,k){if(t.name===nm)i=k});
         if(i>=0){if((TQ[i].savedAt||"")>at){old++;return}TQ.splice(i,1)}
-        TQ.push({name:nm,savedAt:at,data:D});ok++}catch(e){bad++}});
+        migTg(D.items);TQ.push({name:nm,savedAt:at,data:D});ok++}catch(e){bad++}});
     TQ.sort(function(a,b){return a.name.localeCompare(b.name)});
     renderTeam();
     say("Loaded "+ok+" file"+(ok===1?"":"s")+(old?", skipped "+old+" older copy":"")+(bad?", could not read "+bad:"")+".")})}
@@ -1647,14 +1675,14 @@ var TIPS=[
  ["#bdows","Only the ticked weekdays in the range are changed."],["#bov","Replace day types that are already set."],
  ["#bapply","Set the day type on the matching dates."],["#bclear","Remove the day type from the matching dates."],
  ["#np","Project for the new task. Start with the 7-digit job code."],["#nt","Scope of work, such as Pipe Modeling."],
- ["#nd","Revision, Checking or Creation, or the activity name."],["#ng","Target group, summarised on the Dashboard."],
+ ["#nd","Revision, Checking or Creation, or the activity name."],
  ["#addb","Add a new task row to the grid."],["#golists","Add or remove dropdown choices."],
  ["#grid .rz","Drag to change this column's width. Double-click to reset."],
  ["#grid th.fc1","Project (7-digit job code and name)."],["#grid th.fc2","Task: the scope of work."],
  ["#grid th.fc3","Description: Revision, Checking, Creation or the activity. Click a cell below to fill a date range."],
- ["#grid th.fc4","Target group for this task."],
+ ["#grid th.fc4","Targets used by this activity. Set them per day in the Target row."],
  ["#grid td.rg","Click to pick a date range for this activity, handy for routine tasks."],
- ["#grid select.tg","Target group. Totals per target appear on the Dashboard."],
+ ["#grid select.tg","Target for this activity on this day only. Totals per target appear on the Dashboard and TMS."],
  ["#grid input[data-k=est]","Estimated hours planned for this task on this date."],
  ["#grid input[data-k=log]","Logged (actual) hours worked on this task on this date."],
  ["#grid select[data-dt]","Day type for this date (WFO, WFH, VL, SL, Holiday...). Holiday shows grey, VL and SL pink."],
