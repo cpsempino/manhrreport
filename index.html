@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+JP:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+JP:wght@400;500;600&display=swap"
     />
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"
@@ -21,47 +21,73 @@
     <style>
 /* ===== STYLES: colours and fonts are the variables in :root below ===== */
 :root {
-  --bg: #f5f4f0;
+  --bg: #eceff2;
   --panel: #fff;
-  --ink: #1d2327;
-  --mute: #69726f;
-  --line: #e1ded6;
-  --head: #1f5560;
-  --est: #2b6cb0;
-  --log: #2f8f5b;
-  --wk: #e6e4de;
-  --wk-ink: #8a8f8c;
-  --task: #d6e4e1;
-  --task2: #ebf2f0;
+  --ink: #172230;
+  --mute: #62707e;
+  --line: #dbe1e7;
+  --head: #0b6577;
+  --acc: #0b6577;
+  --bar: #0e1b27;
+  --est: #3b6fd4;
+  --log: #1f9d6b;
+  --est-bg: #e3ebfb;
+  --est-fg: #2a55b0;
+  --log-bg: #dcf2e8;
+  --log-fg: #146b47;
+  --thead: #e6ecf1;
+  --wk: #e9edf1;
+  --wk-ink: #8a95a0;
+  --task: #dce8ee;
+  --task2: #f1f5f8;
+  --amber: #e8a317;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #14181a;
-    --panel: #1c2224;
-    --ink: #e8ecea;
-    --mute: #98a3a0;
-    --line: #2d3638;
-    --head: #2f7585;
-    --wk: #262d2f;
-    --wk-ink: #6f7b78;
-    --task: #26403f;
-    --task2: #1f3032;
+    --bg: #0c1217;
+    --panel: #141c23;
+    --ink: #e6ecf1;
+    --mute: #8d9ba8;
+    --line: #26323c;
+    --head: #1b8296;
+    --acc: #5cc3d4;
+    --bar: #080d11;
+    --est: #5b8def;
+    --log: #34b988;
+    --est-bg: #1b2a4a;
+    --est-fg: #9db9f5;
+    --log-bg: #153a2c;
+    --log-fg: #8ad9b6;
+    --thead: #1c2630;
+    --wk: #19222a;
+    --wk-ink: #6c7a87;
+    --task: #1f3340;
+    --task2: #182129;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #14181a;
-  --panel: #1c2224;
-  --ink: #e8ecea;
-  --mute: #98a3a0;
-  --line: #2d3638;
-  --head: #2f7585;
-  --wk: #262d2f;
-  --wk-ink: #6f7b78;
-  --task: #26403f;
-  --task2: #1f3032;
+  --bg: #0c1217;
+  --panel: #141c23;
+  --ink: #e6ecf1;
+  --mute: #8d9ba8;
+  --line: #26323c;
+  --head: #1b8296;
+  --acc: #5cc3d4;
+  --bar: #080d11;
+  --est: #5b8def;
+  --log: #34b988;
+  --est-bg: #1b2a4a;
+  --est-fg: #9db9f5;
+  --log-bg: #153a2c;
+  --log-fg: #8ad9b6;
+  --thead: #1c2630;
+  --wk: #19222a;
+  --wk-ink: #6c7a87;
+  --task: #1f3340;
+  --task2: #182129;
 }
 html {
   scroll-padding-top: env(safe-area-inset-top, 0px);
@@ -74,7 +100,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font:
-    14px/1.45 "IBM Plex Sans",
+    14px/1.45 "Plus Jakarta Sans",
     "IBM Plex Sans JP",
     "Segoe UI",
     system-ui,
@@ -1362,6 +1388,638 @@ table.rep caption {
   padding: 0;
   border: 0;
 }
+
+/* =====================================================================
+   THEME v2: app bar, quiet tables, tinted hour cells.
+   This layer sits last so it wins; edit the :root colours to restyle.
+   ===================================================================== */
+body {
+  font-size: 14px;
+  letter-spacing: 0.002em;
+}
+
+/* --- app bar: title + tabs on one dark strip --- */
+header {
+  background: var(--bar);
+  color: #f2f6f9;
+  padding: 14px 24px 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+}
+header::before {
+  content: none;
+}
+h1 {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: 0;
+  color: #fff;
+}
+header p {
+  margin: 0;
+  font-size: 12.5px;
+  color: #8fa1b0;
+}
+.tabs {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--bar);
+  padding: 8px 20px 0;
+  gap: 2px;
+  border-bottom: 1px solid #000;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+.tabs button,
+.tabs button:hover,
+.tabs button.on {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13.5px;
+  font-weight: 500;
+  border: 0;
+  border-radius: 8px 8px 0 0;
+  margin: 0;
+  padding: 9px 15px 10px;
+  background: transparent;
+  color: #9fb0bd;
+  white-space: nowrap;
+  box-shadow: inset 0 -3px 0 transparent;
+}
+.tabs button:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.07);
+}
+.tabs button.on {
+  color: #fff;
+  font-weight: 650;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 -3px 0 var(--amber);
+  border-top: 0;
+  padding-top: 9px;
+}
+.tabs button:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: -2px;
+}
+:root:not([data-theme="light"]) .tabs button.on {
+  color: #fff;
+}
+
+/* --- toolbars --- */
+.bar {
+  padding: 14px 24px 6px;
+  gap: 10px 12px;
+}
+.bar label,
+#wsrow label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--mute);
+  gap: 4px;
+}
+.bar label.chk {
+  color: var(--ink);
+}
+input,
+select {
+  accent-color: var(--head);
+}
+.bar input,
+.bar select,
+#wsrow input,
+.add input,
+.add select,
+.card .row input,
+#pm {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 6px 10px;
+}
+.bar input:hover,
+.bar select:hover,
+.add select:hover {
+  border-color: #b7c2cc;
+}
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--head);
+  outline-offset: 0;
+  border-color: var(--head);
+}
+button {
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-weight: 500;
+}
+button:hover {
+  background: var(--task2);
+  border-color: #b7c2cc;
+}
+button.primary {
+  background: var(--head);
+  border-color: var(--head);
+  color: #fff;
+  font-weight: 600;
+}
+button.primary:hover {
+  background: var(--head);
+  border-color: var(--head);
+  filter: brightness(1.1);
+}
+.hint {
+  color: var(--mute);
+  font-size: 13px;
+}
+#plabel {
+  font-variant-numeric: tabular-nums;
+}
+#wsline {
+  margin: 0 24px 12px !important;
+  padding: 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--amber);
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+#wsline:empty {
+  display: none;
+}
+#msg {
+  padding: 0 24px;
+}
+.add {
+  padding: 0 24px 28px;
+}
+
+/* --- panels --- */
+.wrap {
+  margin: 4px 24px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(15, 30, 45, 0.05);
+}
+.lists {
+  padding: 16px 24px;
+  gap: 16px;
+}
+.card {
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 2px rgba(15, 30, 45, 0.05);
+}
+.card h2 {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+.chip {
+  background: var(--task2);
+  border-radius: 999px;
+}
+#opts {
+  margin: 0 24px 12px;
+}
+.wsdet {
+  margin: 0 24px 8px;
+}
+.empty {
+  color: var(--mute);
+}
+
+/* --- tables: light headers, soft lines --- */
+thead th,
+#sheet thead th,
+table.rep thead th,
+.mini th {
+  background: var(--thead);
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: 0;
+  border-color: var(--line);
+}
+thead th small {
+  color: var(--mute);
+  opacity: 1;
+  font-weight: 450;
+}
+thead th.wk,
+th.wk {
+  background: var(--wk);
+  color: var(--wk-ink);
+}
+thead th.hol {
+  background: #d3d9df;
+  color: #44505c;
+}
+thead th.leave {
+  background: #fbdce6;
+  color: #a31d4b;
+}
+#grid thead th.dsp {
+  box-shadow: inset 0 -3px 0 var(--amber);
+}
+thead tr.dtype th {
+  background: var(--task2);
+}
+td.lab {
+  background: var(--task);
+}
+td.lab2,
+tfoot td,
+#sheet tfoot td {
+  background: var(--task2);
+}
+td.type {
+  color: var(--mute);
+}
+#grid td.type.fc {
+  background: var(--panel);
+}
+#grid .fc5 {
+  box-shadow: 2px 0 0 var(--line);
+}
+
+/* hour cells: tinted instead of solid blocks */
+td.c.has.e {
+  background: var(--est-bg);
+}
+td.c.has.l {
+  background: var(--log-bg);
+}
+td.c.has.e input {
+  color: var(--est-fg);
+}
+td.c.has.l input {
+  color: var(--log-fg);
+}
+td.c.has input {
+  font-weight: 650;
+  color: inherit;
+}
+td.c input:focus-visible {
+  outline: 2px solid var(--head);
+  outline-offset: -2px;
+  background: var(--panel);
+  color: var(--ink);
+}
+td.c.hol:not(.has) {
+  background: #d3d9df;
+}
+td.c.leave:not(.has) {
+  background: #fbdce6;
+}
+#sheet td.c.has {
+  color: inherit;
+}
+#sheet td.c.has.e,
+#sheet td.c.e.has {
+  color: var(--est-fg);
+}
+#sheet td.c.has.l {
+  color: var(--log-fg);
+}
+#sheet tr.hol td {
+  background: #d3d9df;
+  color: var(--ink);
+}
+#sheet tr.leave td {
+  background: #fbdce6;
+  color: var(--ink);
+}
+:root[data-theme="dark"] td.c.hol:not(.has),
+:root[data-theme="dark"] #sheet tr.hol td,
+:root[data-theme="dark"] thead th.hol {
+  background: #2c3742;
+  color: #c3ccd5;
+}
+:root[data-theme="dark"] td.c.leave:not(.has),
+:root[data-theme="dark"] #sheet tr.leave td,
+:root[data-theme="dark"] thead th.leave {
+  background: #4a1f30;
+  color: #ffc3d5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) td.c.hol:not(.has),
+  :root:not([data-theme="light"]) #sheet tr.hol td,
+  :root:not([data-theme="light"]) thead th.hol {
+    background: #2c3742;
+    color: #c3ccd5;
+  }
+  :root:not([data-theme="light"]) td.c.leave:not(.has),
+  :root:not([data-theme="light"]) #sheet tr.leave td,
+  :root:not([data-theme="light"]) thead th.leave {
+    background: #4a1f30;
+    color: #ffc3d5;
+  }
+  .tabs {
+    border-bottom-color: #1a242d;
+  }
+}
+.dpb {
+  background: var(--amber);
+  color: #231a00;
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+/* --- dashboard figures --- */
+.kpi {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: none;
+}
+.kpi b {
+  font-size: 24px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+.kpi span {
+  font-size: 12px;
+  color: var(--mute);
+  font-weight: 450;
+}
+.card .kpis + * {
+  margin-top: 4px;
+}
+.mini td.warn {
+  background: #fbe3a6;
+  color: #4a3200;
+}
+.mini td.crit {
+  background: #f7c4c6;
+  color: #7a1519;
+}
+:root[data-theme="dark"] .mini td.warn {
+  background: #5a4310;
+  color: #ffe2a0;
+}
+:root[data-theme="dark"] .mini td.crit {
+  background: #5e1f24;
+  color: #ffc9cc;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .mini td.warn {
+    background: #5a4310;
+    color: #ffe2a0;
+  }
+  :root:not([data-theme="light"]) .mini td.crit {
+    background: #5e1f24;
+    color: #ffc9cc;
+  }
+}
+
+/* --- popovers, menus --- */
+.pop,
+.dd .ddbody {
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(10, 20, 30, 0.22);
+}
+.dd > summary {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  font-weight: 500;
+}
+.calg button.cd.sel {
+  background: var(--head);
+}
+#rgpop label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-size: 12px;
+}
+#tipbox {
+  background: #0e1b27;
+  color: #f2f6f9;
+  border-radius: 8px;
+}
+
+/* --- phone width --- */
+@media (max-width: 640px) {
+  header {
+    padding: 12px 16px 0;
+  }
+  header p {
+    display: none;
+  }
+  .tabs {
+    padding: 6px 10px 0;
+  }
+  .bar,
+  .add,
+  .lists {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .wrap,
+  #opts,
+  .wsdet {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  #wsline,
+  #msg {
+    margin-left: 16px !important;
+    margin-right: 16px !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+#sheet thead th,
+table.rep thead th,
+thead th {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+
+/* =====================================================================
+   THEME v3: Microsoft Teams (Fluent) look. Brand purple, neutral greys,
+   4-6px corners, underline tabs, bottom-border focus on inputs.
+   Last layer wins; the colours are the variables below.
+   ===================================================================== */
+:root {
+  --bg: #f5f5f5; --panel: #fff; --ink: #242424; --mute: #616161; --line: #e0e0e0;
+  --head: #5b5fc7; --acc: #4f52b2; --bar: #464775;
+  --est: #5b5fc7; --log: #107c10;
+  --est-bg: #e8ebfa; --est-fg: #3b3f9e; --log-bg: #dff6dd; --log-fg: #0b5a0b;
+  --thead: #f0f0f0; --wk: #f3f3f3; --wk-ink: #8a8a8a;
+  --task: #ebebf9; --task2: #fafafa; --amber: #ffb900;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1f1f1f; --panel: #292929; --ink: #f5f5f5; --mute: #adadad; --line: #3d3d3d;
+    --head: #5b5fc7; --acc: #a6a9f0; --bar: #141414;
+    --est-bg: #2f3158; --est-fg: #b9bcf7; --log-bg: #1d3a1d; --log-fg: #9ad29a;
+    --thead: #333; --wk: #242424; --wk-ink: #7a7a7a; --task: #30324e; --task2: #2e2e2e;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1f1f1f; --panel: #292929; --ink: #f5f5f5; --mute: #adadad; --line: #3d3d3d;
+  --head: #5b5fc7; --acc: #a6a9f0; --bar: #141414;
+  --est-bg: #2f3158; --est-fg: #b9bcf7; --log-bg: #1d3a1d; --log-fg: #9ad29a;
+  --thead: #333; --wk: #242424; --wk-ink: #7a7a7a; --task: #30324e; --task2: #2e2e2e;
+}
+body { background: var(--bg); }
+header { background: var(--bar); padding: 10px 20px; align-items: center; }
+h1 { font-size: 16px; font-weight: 600; }
+header p { color: #c8c9e6; font-size: 12px; }
+.tabs {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 4px 16px 0;
+  gap: 4px;
+}
+.tabs button, .tabs button:hover, .tabs button.on {
+  color: var(--mute);
+  background: transparent;
+  border-radius: 4px 4px 0 0;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 10px 12px 11px;
+  box-shadow: none;
+  position: relative;
+}
+.tabs button:hover { background: var(--task2); color: var(--ink); }
+.tabs button.on { color: var(--ink); font-weight: 600; background: transparent; }
+.tabs button.on::after {
+  content: ""; position: absolute; left: 10px; right: 10px; bottom: 0;
+  height: 3px; border-radius: 3px 3px 0 0; background: var(--head);
+}
+.tabs button:focus-visible { outline: 2px solid var(--head); outline-offset: -2px; }
+:root:not([data-theme="light"]) .tabs button.on { color: var(--ink); }
+
+/* inputs: Fluent field with brand underline on focus */
+.bar input, .bar select, #wsrow input, .add input, .add select, .card .row input, #pm, textarea {
+  border: 1px solid #d1d1d1; border-bottom-color: #8a8a8a; border-radius: 4px; min-height: 32px;
+  background: var(--panel); padding: 4px 10px;
+}
+:root[data-theme="dark"] .bar input, :root[data-theme="dark"] .bar select,
+:root[data-theme="dark"] .add select, :root[data-theme="dark"] #pm { border-color: #525252; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .bar input, :root:not([data-theme="light"]) .bar select,
+  :root:not([data-theme="light"]) .add select, :root:not([data-theme="light"]) #pm,
+  :root:not([data-theme="light"]) .add input, :root:not([data-theme="light"]) #wsrow input { border-color: #525252; border-bottom-color: #8a8a8a; }
+}
+.bar input:hover, .bar select:hover, .add select:hover { border-color: #b3b3b3; }
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 0; border-color: var(--line); border-bottom: 2px solid var(--head);
+}
+td.c input:focus-visible { outline: 0; box-shadow: inset 0 -2px 0 var(--head); }
+button { min-height: 32px; border-radius: 4px; border: 1px solid #d1d1d1; background: var(--panel); font-weight: 600; padding: 4px 14px; }
+:root[data-theme="dark"] button { border-color: #525252; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button { border-color: #525252; } }
+button:hover { background: #f5f5f5; border-color: #c7c7c7; }
+:root[data-theme="dark"] button:hover { background: #333; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) button:hover { background: #333; } }
+button.primary, button.primary:hover { background: var(--head); border-color: var(--head); color: #fff; filter: none; }
+button.primary:hover { background: #4f52b2; border-color: #4f52b2; }
+button:focus-visible { outline: 2px solid var(--head); outline-offset: 1px; }
+.tabs button { border: 0 !important; }
+
+/* surfaces */
+.wrap, .card, #opts, .kpi {
+  border-radius: 8px; border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 2px rgba(0,0,0,.06);
+}
+.kpi { background: var(--panel); border-radius: 6px; }
+.kpi b { font-weight: 600; }
+.chip { background: var(--task); border: 0; }
+#wsline { border-left-color: var(--head); border-radius: 6px; background: var(--task); }
+thead th, #sheet thead th, table.rep thead th, .mini th { background: var(--thead); font-weight: 600; }
+thead tr.dtype th { background: var(--task2); }
+td.lab, #sheet td:first-child { background: var(--task); }
+#grid thead th.dsp { box-shadow: inset 0 -3px 0 var(--amber); }
+.dpb { background: var(--amber); color: #3a2a00; border-radius: 4px; }
+.calg button.cd.sel { background: var(--head); border-color: var(--head); color: #fff; }
+.dd > summary { border-radius: 4px; min-height: 32px; border-color: #d1d1d1; }
+.pop, .dd .ddbody { border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,.14), 0 0 2px rgba(0,0,0,.12); }
+#tipbox { background: #292929; color: #fff; border-radius: 4px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #tipbox { background: #f5f5f5; color: #242424; } }
+@media (max-width: 640px) { header { padding: 10px 16px; } .tabs { padding: 4px 8px 0; } }
+:root[data-theme="dark"] .dd > summary { border-color: #525252; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dd > summary { border-color: #525252; } }
+
+/* =====================================================================
+   ORIGINAL COLOURS restored (teal header, blue/green cells, warm grey page)
+   ===================================================================== */
+:root {
+  --bg: #f5f4f0; --panel: #fff; --ink: #1d2327; --mute: #69726f; --line: #e1ded6;
+  --head: #1f5560; --acc: #1f5560; --bar: #1f5560;
+  --est: #2b6cb0; --log: #2f8f5b;
+  --thead: #1f5560; --wk: #e6e4de; --wk-ink: #8a8f8c; --task: #d6e4e1; --task2: #ebf2f0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181a; --panel: #1c2224; --ink: #e8ecea; --mute: #98a3a0; --line: #2d3638;
+    --head: #2f7585; --acc: #6fc0cf; --bar: #14181a;
+    --thead: #2f7585; --wk: #262d2f; --wk-ink: #6f7b78; --task: #26403f; --task2: #1f3032;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14181a; --panel: #1c2224; --ink: #e8ecea; --mute: #98a3a0; --line: #2d3638;
+  --head: #2f7585; --acc: #6fc0cf; --bar: #14181a;
+  --thead: #2f7585; --wk: #262d2f; --wk-ink: #6f7b78; --task: #26403f; --task2: #1f3032;
+}
+thead th, #sheet thead th, table.rep thead th, .mini th { background: var(--head); color: #fff; }
+thead th small { color: #fff; opacity: 0.8; }
+thead th.wk, th.wk { background: #6b7785; color: #fff; }
+thead th.hol { background: #4b5563; color: #fff; }
+thead th.leave { background: #d6336c; color: #fff; }
+thead tr.dtype th { background: var(--task2); color: var(--ink); }
+td.c.has.e { background: var(--est); }
+td.c.has.l { background: var(--log); }
+td.c.has.e input, td.c.has.l input, td.c.has input { color: #fff; }
+td.c.hol:not(.has) { background: #a9afb7; }
+td.c.leave:not(.has) { background: #ffc2d6; }
+#sheet td.c.has, #sheet td.c.has.e, #sheet td.c.has.l { color: #fff; }
+#sheet td.c.has.e { background: var(--est); }
+#sheet td.c.has.l { background: var(--log); }
+#sheet tr.hol td { background: #b9bfc7; color: #000; }
+#sheet tr.leave td { background: #ffc2d6; color: #000; }
+button.primary, button.primary:hover { background: var(--head); border-color: var(--head); color: #fff; }
+button.primary:hover { filter: brightness(1.12); }
+.chip, #wsline { background: var(--task2); }
+#wsline { border-left-color: var(--amber); }
+.tabs button.on::after, .calg button.cd.sel { background: var(--head); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { border-bottom-color: var(--head); }
+.mini td.warn { background: #ffa726; color: #000; }
+.mini td.crit { background: #e5484d; color: #fff; }
+.kpi { background: var(--task2); }
+:root[data-theme="dark"] td.c.hol:not(.has), :root[data-theme="dark"] #sheet tr.hol td, :root[data-theme="dark"] thead th.hol { background: #4b5563; color: #fff; }
+:root[data-theme="dark"] td.c.leave:not(.has), :root[data-theme="dark"] #sheet tr.leave td { background: #ffc2d6; color: #000; }
+:root[data-theme="dark"] .mini td.warn { background: #ffa726; color: #000; }
+:root[data-theme="dark"] .mini td.crit { background: #e5484d; color: #fff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) td.c.hol:not(.has), :root:not([data-theme="light"]) #sheet tr.hol td, :root:not([data-theme="light"]) thead th.hol { background: #4b5563; color: #fff; }
+  :root:not([data-theme="light"]) td.c.leave:not(.has), :root:not([data-theme="light"]) #sheet tr.leave td { background: #ffc2d6; color: #000; }
+  :root:not([data-theme="light"]) .mini td.warn { background: #ffa726; color: #000; }
+  :root:not([data-theme="light"]) .mini td.crit { background: #e5484d; color: #fff; }
+}
 </style>
   </head>
   <body>
@@ -1942,6 +2600,187 @@ function fmt(n) {
 var freshItems = [];
 
 // ========================================================================
+// EXCEL / CSV READER THAT WORKS WITHOUT ANY DOWNLOAD
+// ========================================================================
+// Importing normally uses the SheetJS library (XLSX), which is loaded from the internet. On company PCs
+// that link is often blocked, so the page also has its own small reader:
+//   .xlsx  read straight from the file (needs a current Chrome or Edge)
+//   .csv   comma, semicolon or tab separated; UTF-8 or Japanese Shift-JIS
+// Both give the same rows the importers already understand. Exporting to Excel still needs SheetJS.
+
+// true when the SheetJS library is available; otherwise tells the user what to do
+function xlsxReady() {
+  if (typeof XLSX !== "undefined" && XLSX.utils && XLSX.utils.aoa_to_sheet) return true;
+  say(
+    "Exporting to Excel needs the Excel library, which was blocked or did not load. Put xlsx.full.min.js next to this page and reload. Importing still works without it.",
+  );
+  return false;
+}
+// opts.cellDates: ask SheetJS for real dates (the tracker import does)
+async function readWorkbook(file, opts) {
+  var buf = await file.arrayBuffer();
+  if (typeof XLSX !== "undefined" && XLSX.read) return XLSX.read(buf, { type: "array", cellDates: !!(opts && opts.cellDates) });
+  var rows = /\.csv$/i.test(file.name || "") ? csvRows(decodeText(buf)) : await xlsxRows(buf);
+  return { SheetNames: ["Sheet1"], Sheets: { Sheet1: { __rows: rows } } };
+}
+// rows of the first sheet, from either reader
+function sheetRows(ws) {
+  return ws.__rows || XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+}
+
+// ---- CSV ----
+function decodeText(buf) {
+  var t;
+  try {
+    t = new TextDecoder("utf-8", { fatal: true }).decode(buf);
+  } catch (e) {
+    t = new TextDecoder("shift_jis").decode(buf); // Japanese Excel "CSV" files
+  }
+  return t.replace(/^﻿/, "");
+}
+function csvRows(text) {
+  var first = text.split(/\r?\n/, 1)[0],
+    best = ",";
+  [",", ";", "\t"].forEach(function (d) {
+    if (first.split(d).length > first.split(best).length) best = d;
+  });
+  var rows = [],
+    row = [],
+    cell = "",
+    q = false,
+    i,
+    ch;
+  var endCell = function () {
+    var v = cell.trim();
+    row.push(v === "" ? null : /^-?\d+(\.\d+)?$/.test(v) ? parseFloat(v) : v);
+    cell = "";
+  };
+  for (i = 0; i < text.length; i++) {
+    ch = text[i];
+    if (q) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          cell += '"';
+          i++;
+        } else q = false;
+      } else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === best) endCell();
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && text[i + 1] === "\n") i++;
+      endCell();
+      rows.push(row);
+      row = [];
+    } else cell += ch;
+  }
+  if (cell !== "" || row.length) {
+    endCell();
+    rows.push(row);
+  }
+  return rows;
+}
+
+// ---- XLSX (a zip file of XML parts) ----
+async function xlsxRows(buf) {
+  var u = new Uint8Array(buf),
+    dv = new DataView(buf),
+    e = u.length - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error("This is not an .xlsx or .csv file.");
+  var n = dv.getUint16(e + 10, true),
+    p = dv.getUint32(e + 16, true),
+    files = {},
+    i;
+  for (i = 0; i < n; i++) {
+    var nl = dv.getUint16(p + 28, true),
+      xl = dv.getUint16(p + 30, true),
+      cl = dv.getUint16(p + 32, true);
+    files[new TextDecoder().decode(u.subarray(p + 46, p + 46 + nl))] = {
+      method: dv.getUint16(p + 10, true),
+      size: dv.getUint32(p + 20, true),
+      off: dv.getUint32(p + 42, true),
+    };
+    p += 46 + nl + xl + cl;
+  }
+  var text = async function (name) {
+    var f = files[name];
+    if (!f) return null;
+    var ln = dv.getUint16(f.off + 26, true),
+      lx = dv.getUint16(f.off + 28, true),
+      s = f.off + 30 + ln + lx,
+      data = u.subarray(s, s + f.size);
+    if (f.method === 0) return new TextDecoder().decode(data);
+    if (f.method !== 8 || typeof DecompressionStream === "undefined")
+      throw new Error("This browser cannot open .xlsx files without the Excel library. Save the file as CSV and import that instead.");
+    var out = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    return new TextDecoder().decode(await new Response(out).arrayBuffer());
+  };
+  var xml = function (s) {
+    return new DOMParser().parseFromString(s, "application/xml");
+  };
+  // which file holds the first sheet
+  var sheetFile = "xl/worksheets/sheet1.xml";
+  var wbx = await text("xl/workbook.xml"),
+    rels = await text("xl/_rels/workbook.xml.rels");
+  if (wbx && rels) {
+    var sh = xml(wbx).getElementsByTagName("sheet")[0],
+      rid = sh && (sh.getAttribute("r:id") || sh.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id"));
+    Array.prototype.forEach.call(xml(rels).getElementsByTagName("Relationship"), function (r) {
+      if (r.getAttribute("Id") === rid) {
+        var t = r.getAttribute("Target").replace(/^\//, "");
+        sheetFile = /^xl\//.test(t) ? t : "xl/" + t;
+      }
+    });
+  }
+  var sheetXml = await text(sheetFile);
+  if (!sheetXml) throw new Error("Could not find the first sheet in that file.");
+  // shared strings (skip the furigana runs)
+  var shared = [],
+    ss = await text("xl/sharedStrings.xml");
+  if (ss)
+    Array.prototype.forEach.call(xml(ss).getElementsByTagName("si"), function (si) {
+      var t = "";
+      Array.prototype.forEach.call(si.getElementsByTagName("t"), function (x) {
+        if (x.parentNode.nodeName !== "rPh") t += x.textContent;
+      });
+      shared.push(t);
+    });
+  var colNo = function (ref) {
+    var m = /^([A-Z]+)/.exec(ref),
+      c = 0;
+    for (var k = 0; k < m[1].length; k++) c = c * 26 + m[1].charCodeAt(k) - 64;
+    return c - 1;
+  };
+  var rows = [];
+  Array.prototype.forEach.call(xml(sheetXml).getElementsByTagName("row"), function (rw) {
+    var ri = parseInt(rw.getAttribute("r"), 10) - 1,
+      arr = [];
+    Array.prototype.forEach.call(rw.getElementsByTagName("c"), function (c) {
+      var ref = c.getAttribute("r"),
+        ty = c.getAttribute("t"),
+        v = c.getElementsByTagName("v")[0],
+        val = null;
+      if (ty === "inlineStr") val = Array.prototype.map.call(c.getElementsByTagName("t"), function (x) { return x.textContent; }).join("");
+      else if (v) {
+        var s = v.textContent;
+        if (ty === "s") val = shared[parseInt(s, 10)];
+        else if (ty === "str") val = s;
+        else if (ty === "b") val = s === "1";
+        else if (ty === "e") val = null;
+        else val = parseFloat(s);
+      }
+      if (val === "" || val === undefined) val = null;
+      var ci = ref ? colNo(ref) : arr.length;
+      while (arr.length < ci) arr.push(null);
+      arr[ci] = val;
+    });
+    while (rows.length < ri) rows.push([]);
+    rows[ri] = arr;
+  });
+  return rows;
+}
+
+// ========================================================================
 // TRACKER TAB: the hours grid (render) and its edit handlers
 // ========================================================================
 function render() {
@@ -2273,15 +3112,11 @@ $("imp").onclick = function () {
 $("file").onchange = function (e) {
   var f = e.target.files[0];
   if (!f) return;
-  var r = new FileReader();
-  r.onload = function () {
-    try {
-      importWb(XLSX.read(r.result, { type: "array", cellDates: true }));
-    } catch (err) {
+  readWorkbook(f, { cellDates: true })
+    .then(importWb)
+    .catch(function (err) {
       say("Could not read that file: " + err.message);
-    }
-  };
-  r.readAsArrayBuffer(f);
+    });
   e.target.value = "";
 };
 function toIso(c, yr) {
@@ -2585,7 +3420,7 @@ function periodOf(d) {
 }
 function importWb(wb) {
   var ws = wb.Sheets[wb.SheetNames[0]];
-  var rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+  var rows = sheetRows(ws);
   var rh = rows.findIndex(function (r) {
     return r.some(function (c) {
       return /^logged date$/i.test(String(c == null ? "" : c).trim());
@@ -2740,6 +3575,7 @@ function importWb(wb) {
 // EXCEL EXPORT
 // ========================================================================
 $("exp").onclick = function () {
+  if (!xlsxReady()) return;
   var head = ["Project", "Task", "Description", "Target", "Type"].concat(
     S.dates.map(function (s) {
       return parseIso(s);
@@ -3021,6 +3857,7 @@ function hm(v) {
   return m ? +m[1] * 60 + +m[2] : null;
 }
 $("sx").onclick = function () {
+  if (!xlsxReady()) return;
   var df = tsDates(),
     out = [
       ["Name", S.tsName || ""],
@@ -3509,7 +4346,7 @@ function dateOf(c, dates, from) {
 }
 function importSheet(wb) {
   var ws = wb.Sheets[wb.SheetNames[0]];
-  var rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+  var rows = sheetRows(ws);
   var nz = function (c) {
     return String(c == null ? "" : c)
       .toLowerCase()
@@ -3592,15 +4429,11 @@ $("simp").onclick = function () {
 $("sfile").onchange = function (e) {
   var f = e.target.files[0];
   if (!f) return;
-  var r = new FileReader();
-  r.onload = function () {
-    try {
-      importSheet(XLSX.read(r.result, { type: "array" }));
-    } catch (err) {
+  readWorkbook(f)
+    .then(importSheet)
+    .catch(function (err) {
       say("Could not read that file: " + err.message);
-    }
-  };
-  r.readAsArrayBuffer(f);
+    });
   e.target.value = "";
 };
 
@@ -3888,6 +4721,7 @@ $("wkprint").onclick = function () {
   window.print();
 };
 $("wkx").onclick = function () {
+  if (!xlsxReady()) return;
   var w = wkModel(),
     nc = CATS.length;
   var out = [
@@ -5703,6 +6537,7 @@ $("tmsprint").onclick = function () {
   window.print();
 };
 $("tmsx").onclick = function () {
+  if (!xlsxReady()) return;
   var p = tmsCur();
   if (!p) return say("Add a project first (Lists tab).");
   var kAll = tmsCalc(p),
