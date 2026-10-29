@@ -3850,6 +3850,13 @@ function calc(s) {
     r.w = q4(Math.max(0, (b - a) / 60 - br));
     r.e = q4(Math.max(0, r.w - nomOf(s)));
   }
+  // Hours logged in the Tracker are the source of truth: when a day has any,
+  // WORKING TIME and the excess/OT columns follow them, so both tabs always agree.
+  var lg = dayLogged(s);
+  if (lg > 0) {
+    r.w = lg;
+    r.e = excessOf(s);
+  }
   return r;
 }
 function hm(v) {
