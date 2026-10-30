@@ -2028,6 +2028,20 @@ td.mism, #grid tfoot td.mism { background: #e5484d; color: #fff; font-weight: 70
 td.c input:focus, td.c.has input:focus, td.c.has.e input:focus, td.c.has.l input:focus {
   background: var(--panel); color: var(--ink); font-weight: 650;
 }
+
+/* OT summary under the timesheet */
+.otsum { margin: 0 24px 28px; padding: 16px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+.otsum h2 { margin: 0 0 10px; font-size: 15px; }
+.otrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 12px; }
+.otrow label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--mute); }
+.otrow input, .otrules input[type="number"], .otrules input[type="time"] { min-height: 32px; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; background: var(--panel); }
+.otrules { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin: 0 0 12px; display: grid; gap: 8px; }
+.otrules legend { padding: 0 6px; font-size: 12px; color: var(--mute); }
+.otrules label.chk { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.otrules input[type="checkbox"] { width: auto; min-height: 0; }
+.kpis.ots { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 8px; }
+@media (max-width: 640px) { .otsum { margin: 0 16px 24px; } .kpis.ots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media print { .otsum input, .otsum button { border: 0; } }
 </style>
   </head>
   <body>
@@ -2270,6 +2284,7 @@ td.c input:focus, td.c.has input:focus, td.c.has.e input:focus, td.c.has.l input
         ><button id="sx">Export timesheet</button><button id="sprint">Print</button>
       </div>
       <div class="wrap"><table id="sheet"></table></div>
+      <div class="otsum" id="otsum"></div>
     </section>
 
     <!-- ===== TMS TAB ===== -->
@@ -3454,6 +3469,64 @@ function periodOf(d) {
   if (x.getDate() >= P_START) return [iso(new Date(y, m, P_START)), iso(new Date(y, m + 1, P_END))];
   return [iso(new Date(y, m - 1, P_START)), iso(new Date(y, m, P_END))];
 }
+// the per-day export above: Date | Day | Project | Task | Description | Estimated | Logged | Note
+function importLong(rows, hi) {
+  var H = rows[hi].map(function (c) {
+      return String(c == null ? "" : c).trim().toLowerCase();
+    }),
+    ix = function (n) {
+      return H.indexOf(n);
+    },
+    cD = ix("date"),
+    cP = ix("project"),
+    cT = ix("task"),
+    cS = ix("description"),
+    cE = ix("estimated"),
+    cL = ix("logged"),
+    cN = ix("note"),
+    n = 0,
+    lo = "",
+    hi2 = "";
+  if (cD < 0 || cE < 0 || cL < 0) return false;
+  rows.slice(hi + 1).forEach(function (r) {
+    var d = dailyDate(r[cD]),
+      lab = String(r[cS] == null ? "" : r[cS]);
+    if (!d || /total/i.test(lab)) return;
+    var e = parseFloat(r[cE]),
+      l = parseFloat(r[cL]);
+    if (!(e > 0 || l > 0)) return;
+    var pr = String(cP < 0 || r[cP] == null ? "" : r[cP]).trim(),
+      tk = String(cT < 0 || r[cT] == null ? "" : r[cT]).trim(),
+      ds = String(r[cS] == null ? "" : r[cS]).trim();
+    var it = S.items.filter(function (x) {
+      return (x.project || "") === pr && x.task === tk && (x.desc || "") === ds;
+    })[0];
+    if (!it) {
+      it = { project: pr, task: tk, desc: ds, est: {}, log: {} };
+      S.items.push(it);
+    }
+    if (e > 0) it.est[d] = e;
+    if (l > 0) it.log[d] = l;
+    var nt = cN < 0 || r[cN] == null ? "" : String(r[cN]).trim();
+    if (nt) (it.note = it.note || {})[d] = nt;
+    n++;
+    if (!lo || d < lo) lo = d;
+    if (!hi2 || d > hi2) hi2 = d;
+  });
+  if (!n) return false;
+  var from = periodOf(lo)[0],
+    to = periodOf(hi2)[1];
+  S.dates = mkRange(from, Math.min(120, Math.round((parseIso(to) - parseIso(from)) / 864e5) + 1));
+  S.tsFrom = from;
+  S.tsTo = to;
+  ensureLists();
+  save();
+  buildPeriod();
+  render();
+  syncBar();
+  say("Imported " + n + " day rows (" + lo + " to " + hi2 + "). Existing data was kept.");
+  return true;
+}
 function importWb(wb) {
   var ws = wb.Sheets[wb.SheetNames[0]];
   var rows = sheetRows(ws);
@@ -3463,6 +3536,13 @@ function importWb(wb) {
     });
   });
   if (rh >= 0 && importRaw(rows, rh)) return;
+  var lh = rows.findIndex(function (r) {
+    var t = r.map(function (c) {
+      return String(c == null ? "" : c).trim().toLowerCase();
+    });
+    return t.indexOf("date") >= 0 && t.indexOf("estimated") >= 0 && t.indexOf("logged") >= 0;
+  });
+  if (lh >= 0 && importLong(rows, lh)) return;
   var hi = rows.findIndex(function (r) {
     return r.some(function (c) {
       return String(c).trim().toLowerCase() === "task";
@@ -3612,55 +3692,40 @@ function importWb(wb) {
 // ========================================================================
 $("exp").onclick = function () {
   if (!xlsxReady()) return;
-  var head = ["Project", "Task", "Description", "Target", "Type"].concat(
-    S.dates.map(function (s) {
-      return parseIso(s);
-    }),
-  );
-  var out = [head];
-  S.items.forEach(function (it) {
-    [
-      ["est", "Estimated Time"],
-      ["log", "Logged Time"],
-    ].forEach(function (p) {
-      out.push(
-        [it.project || "", it.task, it.desc, "", p[1]].concat(
-          S.dates.map(function (s) {
-            return it[p[0]][s] || null;
-          }),
-        ),
-      );
+  // One row per day and activity (dates run down the rows), then a "Day total" row per day.
+  var head = ["Date", "Day", "Project", "Task", "Description", "Estimated", "Logged", "Note"];
+  var out = [head],
+    gE = 0,
+    gL = 0;
+  S.dates.forEach(function (s) {
+    var te = 0,
+      tl = 0,
+      n = 0,
+      d = parseIso(s);
+    S.items.forEach(function (it) {
+      var e = num(it.est[s]),
+        l = num(it.log[s]);
+      if (!(e || l)) return;
+      te += e;
+      tl += l;
+      n++;
+      out.push([d, "SMTWTFS"[d.getDay()], it.project || "", it.task || "", it.desc || "", e || null, l || null, (it.note && it.note[s]) || ""]);
     });
-    if (
-      S.dates.some(function (d) {
-        return tgOf(it, d);
-      })
-    )
-      out.push(
-        [it.project || "", it.task, it.desc, "", "Target"].concat(
-          S.dates.map(function (s) {
-            return tgOf(it, s) || null;
-          }),
-        ),
-      );
+    if (n) {
+      out.push([d, "", "", "", "Day total", te || null, tl || null, ""]);
+      gE += te;
+      gL += tl;
+    }
   });
+  out.push(["", "", "", "", "Grand total", gE || null, gL || null, ""]);
   var ws = XLSX.utils.aoa_to_sheet(out, { cellDates: true });
-  S.dates.forEach(function (s, i) {
-    var a = XLSX.utils.encode_cell({ r: 0, c: 5 + i });
-    if (ws[a]) ws[a].z = "m/d";
-  });
-  ws["!cols"] = [{ wch: 20 }, { wch: 36 }, { wch: 14 }, { wch: 12 }, { wch: 16 }].concat(
-    S.dates.map(function () {
-      return { wch: 6 };
-    }),
-  );
+  for (var r = 1; r < out.length; r++) {
+    var a = XLSX.utils.encode_cell({ r: r, c: 0 });
+    if (ws[a] && ws[a].t === "d") ws[a].z = "yyyy-mm-dd";
+  }
+  ws["!cols"] = [{ wch: 12 }, { wch: 5 }, { wch: 20 }, { wch: 30 }, { wch: 22 }, { wch: 10 }, { wch: 10 }, { wch: 50 }];
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Man-hours");
-  XLSX.utils.book_append_sheet(
-    wb,
-    XLSX.utils.aoa_to_sheet([["Target", "Estimated", "Logged"]].concat(targetTotals())),
-    "By target",
-  );
   saveXlsx(wb, "man-hours-" + iso(new Date()) + ".xlsx");
 };
 
@@ -4145,6 +4210,7 @@ function renderSheet() {
     te.toFixed(2) +
     "</td><td></td></tr></tfoot>";
   $("wsline").innerHTML = wsLine();
+  renderOtSum(dts);
 }
 $("grid").addEventListener("change", function (e) {
   var t = e.target;
@@ -4473,6 +4539,99 @@ $("sfile").onchange = function (e) {
     });
   e.target.value = "";
 };
+
+// ========================================================================
+// OT SUMMARY under the timesheet: total OT and OT meals for a date range
+// A meal is counted for a day when ANY ticked rule is met:
+//   - OT of at least N hours that day (default 2)
+//   - closing time at or after a set time (default 20:00)
+// ========================================================================
+function mealRule() {
+  S.meal = S.meal || { ot: true, otH: 2, late: true, lateT: "20:00", from: "", to: "" };
+  return S.meal;
+}
+function otStats(dts) {
+  var m = mealRule(),
+    from = m.from || dts[0] || "",
+    to = m.to || dts[dts.length - 1] || "",
+    ot = 0,
+    meals = 0,
+    byOt = 0,
+    byLate = 0,
+    days = [];
+  mkRangeSafe(from, to).forEach(function (s) {
+    var c = calc(s);
+    if (c.w === null) return;
+    ot += c.e;
+    var a = m.ot && c.e >= num(m.otH) - 1e-9 && c.e > 0,
+      lt = hm(m.lateT),
+      b = m.late && lt !== null && c.b !== null && c.b >= lt;
+    if (a) byOt++;
+    if (b) byLate++;
+    if (a || b) {
+      meals++;
+      days.push(s.slice(5) + (a && b ? " (OT + late)" : a ? " (OT)" : " (late)"));
+    }
+  });
+  return { from: from, to: to, ot: ot, meals: meals, byOt: byOt, byLate: byLate, days: days };
+}
+function mkRangeSafe(a, b) {
+  if (!a || !b) return [];
+  var n = Math.round((parseIso(b) - parseIso(a)) / 864e5) + 1;
+  return n > 0 ? mkRange(a, Math.min(n, 400)) : [];
+}
+function renderOtSum(dts) {
+  var m = mealRule(),
+    st = otStats(dts),
+    el = $("otsum");
+  if (!el) return;
+  if (el.contains(document.activeElement) && el.dataset.built) {
+    el.querySelector("#otres").innerHTML = otResHtml(st);
+    return;
+  }
+  el.innerHTML =
+    '<h2>OT summary</h2><div class="otrow">' +
+    '<label>From<input type="date" id="otfrom" value="' + st.from + '"></label>' +
+    '<label>To<input type="date" id="otto" value="' + st.to + '"></label>' +
+    '<button id="otreset" title="Use the whole timesheet period">Whole period</button></div>' +
+    '<fieldset class="otrules"><legend>OT meal is given when</legend>' +
+    '<label class="chk"><input type="checkbox" id="otm1"' + (m.ot ? " checked" : "") + '> OT in a day is at least <input type="number" id="otmh" step="0.5" min="0" value="' + m.otH + '" style="width:64px"> hrs</label>' +
+    '<label class="chk"><input type="checkbox" id="otm2"' + (m.late ? " checked" : "") + '> Working after <input type="time" id="otmt" value="' + m.lateT + '"> (closing time is at or after this)</label>' +
+    "</fieldset>" +
+    '<div id="otres">' + otResHtml(st) + "</div>";
+  el.dataset.built = "1";
+}
+function otResHtml(st) {
+  return (
+    '<div class="kpis ots"><div class="kpi"><b>' + st.ot.toFixed(2) + "</b><span>Total OT (hrs)</span></div>" +
+    '<div class="kpi"><b>' + st.meals + "</b><span>OT meals</span></div>" +
+    '<div class="kpi"><b>' + st.byOt + "</b><span>by OT hours</span></div>" +
+    '<div class="kpi"><b>' + st.byLate + "</b><span>by working late</span></div></div>" +
+    '<div class="hint">' + (st.days.length ? "Meal days: " + esc(st.days.join(", ")) : "No meal days in this range. Days only count when starting and closing time are entered.") + "</div>"
+  );
+}
+$("otsum").addEventListener("input", function (e) {
+  var m = mealRule(),
+    t = e.target.id;
+  if (t === "otfrom") m.from = e.target.value;
+  else if (t === "otto") m.to = e.target.value;
+  else if (t === "otm1") m.ot = e.target.checked;
+  else if (t === "otm2") m.late = e.target.checked;
+  else if (t === "otmh") m.otH = num(e.target.value);
+  else if (t === "otmt") m.lateT = e.target.value;
+  else return;
+  save();
+  var el = $("otsum");
+  el.querySelector("#otres").innerHTML = otResHtml(otStats(tsDates()));
+});
+$("otsum").addEventListener("click", function (e) {
+  if (e.target.id !== "otreset") return;
+  var m = mealRule();
+  m.from = m.to = "";
+  save();
+  $("otsum").dataset.built = "";
+  renderSheet();
+});
 
 // ========================================================================
 // WEEKLY REPORT TAB: Engineering / TJAS Activities / TM Concerns
