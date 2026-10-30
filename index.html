@@ -2020,6 +2020,14 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { border-botto
   :root:not([data-theme="light"]) .mini td.warn { background: #ffa726; color: #000; }
   :root:not([data-theme="light"]) .mini td.crit { background: #e5484d; color: #fff; }
 }
+
+/* Tracker "Total logged" that disagrees with the Timesheet working time */
+td.mism, #grid tfoot td.mism { background: #e5484d; color: #fff; font-weight: 700; }
+
+/* typed value must stay readable while a cell is being edited */
+td.c input:focus, td.c.has input:focus, td.c.has.e input:focus, td.c.has.l input:focus {
+  background: var(--panel); color: var(--ink); font-weight: 650;
+}
 </style>
   </head>
   <body>
@@ -2902,6 +2910,7 @@ function render() {
           s +
           '" value="' +
           (v || "") +
+          (k === "log" && it.note && it.note[s] ? '" title="' + esc(it.note[s]) : "") +
           '" aria-label="' +
           k +
           " " +
@@ -2935,7 +2944,19 @@ function render() {
         t += num(it[k][s]);
       });
       all += t;
-      h += "<td>" + fmt(t) + "</td>";
+      // Total logged is checked against the Timesheet working time for that day.
+      var bad = "";
+      if (k === "log") {
+        var tw = calc(s).w;
+        if (tw !== null && Math.abs(tw - t) > 0.001)
+          bad =
+            ' class="mism" title="Timesheet working time is ' +
+            tw.toFixed(2) +
+            " hrs, but the Tracker total is " +
+            fmt(t) +
+            ' hrs"';
+      }
+      h += "<td" + bad + ">" + fmt(t) + "</td>";
     });
     h += "<td>" + fmt(all) + "</td><td></td></tr>";
   });
@@ -3323,6 +3344,7 @@ function dailyDesc(t) {
   if (/作成|新規|制作|設計/.test(t)) return "Creation";
   return "";
 }
+var DAILY_TASK = "Daily work";
 function importDaily(rows) {
   // columns are read by position: date, job code, logged time, then the last filled cell is the description
   var off = -1;
@@ -3338,6 +3360,7 @@ function importDaily(rows) {
     lmin = "",
     lmax = "",
     nrows = 0,
+    allTxt = {},
     skipped = 0;
   rows.forEach(function (r) {
     var d = dailyDate(r[off]);
@@ -3357,13 +3380,16 @@ function importDaily(rows) {
       return;
     }
     var project = dailyProject(code),
-      desc = dailyDesc(txt),
-      key = project + "\u0001" + txt + "\u0001" + desc;
+      key = project;
     if (!map[key]) {
-      map[key] = { project: project, task: txt, desc: desc, est: {}, log: {} };
+      map[key] = { project: project, task: DAILY_TASK, desc: "", est: {}, log: {}, note: {} };
       order.push(map[key]);
     }
     map[key].log[cur] = (map[key].log[cur] || 0) + hrs;
+    // every description of that job code on that day is compiled into one daily note
+    var nl = (map[key].note[cur] = map[key].note[cur] || []);
+    if (nl.indexOf(txt) < 0) nl.push(txt);
+    allTxt[txt] = 1;
     nrows++;
     if (!lmin || cur < lmin) lmin = cur;
     if (!lmax || cur > lmax) lmax = cur;
@@ -3372,18 +3398,28 @@ function importDaily(rows) {
   var added = 0,
     upd = 0;
   order.forEach(function (n) {
+    Object.keys(n.note).forEach(function (d) {
+      n.note[d] = n.note[d].join("; ");
+    });
     var ex = S.items.filter(function (x) {
-      return (x.project || "") === n.project && x.task === n.task && (x.desc || "") === n.desc;
+      return (x.project || "") === n.project && x.task === DAILY_TASK;
     })[0];
     if (ex) {
+      ex.note = ex.note || {};
       Object.keys(n.log).forEach(function (d) {
         ex.log[d] = n.log[d];
+        ex.note[d] = n.note[d];
       });
       upd++;
     } else {
       S.items.push(n);
       added++;
     }
+  });
+  ensureLists();
+  if (S.lists.tasks.indexOf(DAILY_TASK) < 0) S.lists.tasks.push(DAILY_TASK);
+  Object.keys(allTxt).forEach(function (t) {
+    if (S.lists.tasks.indexOf(t) < 0) S.lists.tasks.push(t);
   });
   // show whole 23rd-to-22nd periods that contain the imported days
   var from = periodOf(lmin)[0],
@@ -3404,9 +3440,9 @@ function importDaily(rows) {
   render();
   syncBar();
   say(
-    "Imported " + nrows + " daily log rows into " + order.length + " task lines (" + added + " new, " + upd + " updated" +
+    "Imported " + nrows + " daily log rows, compiled per day and job code into " + order.length + " task lines (" + added + " new, " + upd + " updated" +
       (skipped ? ", " + skipped + " rows skipped" : "") + "). Now showing " + from + " to " + to +
-      ". The work descriptions were added to the Task list. Existing data was kept.",
+      ". Hours are summed per day and the work descriptions are noted per day (hover a logged cell, or open the Timesheet remark). Existing data was kept.",
   );
   return true;
 }
@@ -3850,13 +3886,6 @@ function calc(s) {
     r.w = q4(Math.max(0, (b - a) / 60 - br));
     r.e = q4(Math.max(0, r.w - nomOf(s)));
   }
-  // Hours logged in the Tracker are the source of truth: when a day has any,
-  // WORKING TIME and the excess/OT columns follow them, so both tabs always agree.
-  var lg = dayLogged(s);
-  if (lg > 0) {
-    r.w = lg;
-    r.e = excessOf(s);
-  }
   return r;
 }
 function hm(v) {
@@ -3983,7 +4012,8 @@ function daySummaryG(s) {
       t = String(it.task || "").trim(),
       d = String(it.desc || "").trim();
     var w = t;
-    if (d && t.toLowerCase().indexOf(d.toLowerCase()) < 0) w = (t ? t + " " : "") + d;
+    if (it.note && it.note[s]) w = String(it.note[s]);
+    else if (d && t.toLowerCase().indexOf(d.toLowerCase()) < 0) w = (t ? t + " " : "") + d;
     if (ix[n] === undefined) {
       ix[n] = g.length;
       g.push([n, []]);
