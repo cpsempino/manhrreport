@@ -2042,6 +2042,10 @@ td.c input:focus, td.c.has input:focus, td.c.has.e input:focus, td.c.has.l input
 .kpis.ots { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 8px; }
 @media (max-width: 640px) { .otsum { margin: 0 16px 24px; } .kpis.ots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media print { .otsum input, .otsum button { border: 0; } }
+
+.otdet { margin: 0 0 10px; }
+.otdet > summary { cursor: pointer; color: var(--mute); font-size: 13px; padding: 2px 0; }
+.otdet[open] > summary { margin-bottom: 8px; }
 </style>
   </head>
   <body>
@@ -4546,6 +4550,7 @@ $("sfile").onchange = function (e) {
 //   - OT of at least N hours that day (default 2)
 //   - closing time at or after a set time (default 20:00)
 // ========================================================================
+var otOpen = {};
 function mealRule() {
   S.meal = S.meal || { ot: true, otH: 2, late: true, lateT: "20:00", from: "", to: "" };
   return S.meal;
@@ -4594,10 +4599,10 @@ function renderOtSum(dts) {
     '<label>From<input type="date" id="otfrom" value="' + st.from + '"></label>' +
     '<label>To<input type="date" id="otto" value="' + st.to + '"></label>' +
     '<button id="otreset" title="Use the whole timesheet period">Whole period</button></div>' +
-    '<fieldset class="otrules"><legend>OT meal is given when</legend>' +
+    '<details class="otdet"' + (otOpen.r ? " open" : "") + ' data-k="r"><summary>Meal rules</summary><fieldset class="otrules"><legend>OT meal is given when</legend>' +
     '<label class="chk"><input type="checkbox" id="otm1"' + (m.ot ? " checked" : "") + '> OT in a day is at least <input type="number" id="otmh" step="0.5" min="0" value="' + m.otH + '" style="width:64px"> hrs</label>' +
     '<label class="chk"><input type="checkbox" id="otm2"' + (m.late ? " checked" : "") + '> Working after <input type="time" id="otmt" value="' + m.lateT + '"> (closing time is at or after this)</label>' +
-    "</fieldset>" +
+    "</fieldset></details>" +
     '<div id="otres">' + otResHtml(st) + "</div>";
   el.dataset.built = "1";
 }
@@ -4607,7 +4612,7 @@ function otResHtml(st) {
     '<div class="kpi"><b>' + st.meals + "</b><span>OT meals</span></div>" +
     '<div class="kpi"><b>' + st.byOt + "</b><span>by OT hours</span></div>" +
     '<div class="kpi"><b>' + st.byLate + "</b><span>by working late</span></div></div>" +
-    '<div class="hint">' + (st.days.length ? "Meal days: " + esc(st.days.join(", ")) : "No meal days in this range. Days only count when starting and closing time are entered.") + "</div>"
+    '<details class="otdet"' + (otOpen.d ? " open" : "") + ' data-k="d"><summary>Meal days</summary><div class="hint">' + (st.days.length ? esc(st.days.join(", ")) : "No meal days in this range. Days only count when starting and closing time are entered.") + "</div></details>"
   );
 }
 $("otsum").addEventListener("input", function (e) {
@@ -4632,6 +4637,14 @@ $("otsum").addEventListener("click", function (e) {
   $("otsum").dataset.built = "";
   renderSheet();
 });
+$("otsum").addEventListener(
+  "toggle",
+  function (e) {
+    var k = e.target.dataset && e.target.dataset.k;
+    if (k) otOpen[k] = e.target.open;
+  },
+  true,
+);
 
 // ========================================================================
 // WEEKLY REPORT TAB: Engineering / TJAS Activities / TM Concerns
